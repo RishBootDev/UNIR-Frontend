@@ -99,14 +99,24 @@ export const postsService = {
 };
 
 export const profileService = {
-  getProfile: (userId) => apiFetch(`/users/${userId}`),
-  updateProfile: (data) =>
-    apiFetch("/users/me", {
-      method: "PATCH",
-      body: data,
-    }),
+  getProfile: () => apiFetch("/profile"),
+  getProfileByName: (name) => apiFetch(`/profile/byName/${encodeURIComponent(name)}`),
   createProfile: (data) => apiFetch("/profile/addPerson", { method: "POST", body: data }),
-  getConnections: () => apiFetch("/connections"),
+  
+  // Individual update endpoints (for later use on Profile page)
+  updateContact: (data) => apiFetch("/profile/contact", { method: "POST", body: data }),
+  addExperience: (data) => apiFetch("/profile/experience", { method: "POST", body: data }),
+  removeExperience: (id) => apiFetch(`/profile/experience/${id}`, { method: "DELETE" }),
+  addEducation: (data) => apiFetch("/profile/education", { method: "POST", body: data }),
+  removeEducation: (id) => apiFetch(`/profile/education/${id}`, { method: "DELETE" }),
+  addProject: (data) => apiFetch("/profile/project", { method: "POST", body: data }),
+  removeProject: (id) => apiFetch(`/profile/project/${id}`, { method: "DELETE" }),
+  addSkill: (data) => apiFetch("/profile/skill", { method: "POST", body: data }),
+  removeSkill: (id) => apiFetch(`/profile/skill/${id}`, { method: "DELETE" }),
+  addCertification: (data) => apiFetch("/profile/certification", { method: "POST", body: data }),
+  removeCertification: (id) => apiFetch(`/profile/certification/${id}`, { method: "DELETE" }),
+  addLanguage: (data) => apiFetch("/profile/language", { method: "POST", body: data }),
+  addKeyword: (keyword) => apiFetch("/profile/keyword", { method: "POST", body: keyword }),
 };
 
 export const companyService = {

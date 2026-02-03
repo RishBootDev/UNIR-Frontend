@@ -136,18 +136,28 @@ export default function OnboardingPage() {
             email: basicInfo.email, // Ensure this stays synced
             phone: basicInfo.contactInfo.phone || "N/A" // Fallback for NotNull constraint
         },
-        experiences: experiences.map(exp => ({
-            ...exp,
-            technologies: exp.technologies ? exp.technologies.split(",").map(s => s.trim()).filter(Boolean) : []
-        })),
-        educations,
-        projects: projects.map(proj => ({
-            ...proj,
-            technologies: proj.technologies ? proj.technologies.split(",").map(s => s.trim()).filter(Boolean) : []
-        })),
-        skills,
-        languages,
-        certifications,
+        experiences: experiences
+            .filter(exp => exp.company && exp.title) // Only send if company and title exist
+            .map(exp => ({
+                ...exp,
+                technologies: exp.technologies ? exp.technologies.split(",").map(s => s.trim()).filter(Boolean) : []
+            })),
+        educations: educations
+            .filter(edu => edu.institution && edu.degree) // Only send if institution and degree exist
+            .map(edu => ({
+                ...edu,
+                startYear: edu.startYear ? parseInt(edu.startYear) : null, // Convert to number if it's Year
+                endYear: edu.endYear ? parseInt(edu.endYear) : null
+            })),
+        projects: projects
+            .filter(proj => proj.name) // Only send if project has a name
+            .map(proj => ({
+                ...proj,
+                technologies: proj.technologies ? proj.technologies.split(",").map(s => s.trim()).filter(Boolean) : []
+            })),
+        skills: skills.filter(s => s.name),
+        languages: languages.filter(l => l.name),
+        certifications: certifications.filter(c => c.name),
         topKeywords: [] // Optional
       };
 
@@ -263,13 +273,17 @@ export default function OnboardingPage() {
     <div className="space-y-8">
       {/* PROJECTS */}
       <section>
-         <SectionHeader title="Projects" onAdd={() => setProjects([...projects, { name: "", role: "", description: "", repoUrl: "", demoUrl: "", technologies: "" }])} />
+         <SectionHeader title="Projects" onAdd={() => setProjects([...projects, { name: "", role: "", description: "", repoUrl: "", demoUrl: "", technologies: "", startDate: "", endDate: "" }])} />
          {projects.map((proj, idx) => (
              <div key={idx} className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
                 <Input label="Project Name" value={proj.name} onChange={v => { const n = [...projects]; n[idx].name = v; setProjects(n); }} />
                 <div className="grid grid-cols-2 gap-4 mt-3">
                     <Input label="Role" value={proj.role} onChange={v => { const n = [...projects]; n[idx].role = v; setProjects(n); }} />
                     <Input label="Technologies" placeholder="Comma separated" value={proj.technologies} onChange={v => { const n = [...projects]; n[idx].technologies = v; setProjects(n); }} />
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                    <Input type="date" label="Start Date" value={proj.startDate} onChange={v => { const n = [...projects]; n[idx].startDate = v; setProjects(n); }} />
+                    <Input type="date" label="End Date" value={proj.endDate} onChange={v => { const n = [...projects]; n[idx].endDate = v; setProjects(n); }} />
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-3">
                     <Input label="Repo URL" value={proj.repoUrl} onChange={v => { const n = [...projects]; n[idx].repoUrl = v; setProjects(n); }} />
