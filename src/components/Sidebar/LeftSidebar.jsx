@@ -4,7 +4,7 @@ import { Bookmark, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 export function LeftSidebar() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [showMoreRecent, setShowMoreRecent] = useState(false);
 
   const recentGroups = [
@@ -22,22 +22,24 @@ export function LeftSidebar() {
         <div className="px-3 pb-3 -mt-8">
           <Link to="/profile">
             <img
-              src={user?.avatar}
+              src={profile?.profilePictureUrl || user?.avatar || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"}
               alt="Profile"
-              className="w-16 h-16 rounded-full border-2 border-white mx-auto"
+              className="w-16 h-16 rounded-full border-2 border-white mx-auto object-cover"
             />
           </Link>
           <div className="text-center mt-2">
             <Link to="/profile" className="font-semibold text-[rgba(0,0,0,0.9)] hover:underline">
-              {user?.name}
+              {profile ? `${profile.firstName} ${profile.lastName}` : user?.name}
             </Link>
-            <p className="text-xs text-[rgba(0,0,0,0.6)] mt-0.5 line-clamp-2">{user?.headline}</p>
+            <p className="text-xs text-[rgba(0,0,0,0.6)] mt-0.5 line-clamp-2">
+              {profile?.headline || user?.headline || "No headline yet"}
+            </p>
           </div>
         </div>
         <div className="border-t border-[rgba(0,0,0,0.08)] py-3">
           <Link to="/profile" className="flex justify-between px-3 py-1 text-xs hover:bg-[rgba(0,0,0,0.04)]">
             <span className="text-[rgba(0,0,0,0.6)]">Connections</span>
-            <span className="text-[#0a66c2] font-semibold">{user?.connections}</span>
+            <span className="text-[#0a66c2] font-semibold">{profile?.connections?.length || 0}</span>
           </Link>
           <Link to="/profile" className="flex justify-between px-3 py-1 text-xs hover:bg-[rgba(0,0,0,0.04)]">
             <span className="text-[rgba(0,0,0,0.6)]">Who viewed your profile</span>

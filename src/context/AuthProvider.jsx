@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "./authContext";
 import { clearAuth, readAuth, writeAuth } from "@/auth/authStorage";
 import { getJwtExpiryMs, isJwtExpired, decodeJwtPayload } from "@/auth/jwt";
-import { authService } from "@/services/api";
+import { authService, profileService } from "@/services/api";
 
 const USE_MOCK_AUTH =
   import.meta.env.DEV && String(import.meta.env.VITE_USE_MOCK_AUTH).toLowerCase() === "true";
@@ -20,6 +20,7 @@ const mockUser = {
 
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => readAuth());
+  const [profile, setProfile] = useState(null);
 
   const accessToken = auth?.accessToken ?? null;
   const user = auth?.user ?? null;
@@ -54,6 +55,16 @@ export function AuthProvider({ children }) {
     const id = setTimeout(() => logout("token_expired"), timeoutMs);
     return () => clearTimeout(id);
   }, [accessToken, logout]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      profileService.getProfile()
+        .then(data => setProfile(data))
+        .catch(err => console.error("Failed to fetch profile:", err));
+    } else {
+      setProfile(null);
+    }
+  }, [isAuthenticated]);
 
   const login = useCallback(async (email, password) => {
     if (USE_MOCK_AUTH) {
@@ -130,13 +141,19 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       user,
+      profile,
       accessToken,
       isAuthenticated,
       login,
       logout,
       register,
+      refreshProfile: async () => {
+        const data = await profileService.getProfile();
+        setProfile(data);
+        return data;
+      }
     }),
-    [user, accessToken, isAuthenticated, login, logout, register]
+    [user, profile, accessToken, isAuthenticated, login, logout, register]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

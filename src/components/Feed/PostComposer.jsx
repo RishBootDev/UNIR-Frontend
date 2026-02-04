@@ -3,7 +3,7 @@ import { useAuth } from "@/context/useAuth";
 import { Image, Video, Calendar, FileText, X } from "lucide-react";
 
 export function PostComposer({ onPost }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [postContent, setPostContent] = useState("");
 
@@ -19,7 +19,15 @@ export function PostComposer({ onPost }) {
     <>
       <div className="unir-card p-4">
         <div className="flex gap-3">
-          <img src={user?.avatar} alt="Profile" className="w-12 h-12 rounded-full" />
+          <img
+            src={
+              profile?.profilePictureUrl ||
+              user?.avatar ||
+              "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"
+            }
+            alt="Profile"
+            className="w-12 h-12 rounded-full object-cover"
+          />
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex-1 h-12 px-4 text-left text-[rgba(0,0,0,0.6)] bg-transparent border border-[rgba(0,0,0,0.3)] rounded-full hover:bg-[rgba(0,0,0,0.04)] transition-colors"
@@ -57,9 +65,19 @@ export function PostComposer({ onPost }) {
           <div className="w-full max-w-[552px] bg-white rounded-lg shadow-xl">
             <div className="flex items-center justify-between p-4 border-b border-[rgba(0,0,0,0.08)]">
               <div className="flex items-center gap-3">
-                <img src={user?.avatar} alt="Profile" className="w-12 h-12 rounded-full" />
+                <img
+                  src={
+                    profile?.profilePictureUrl ||
+                    user?.avatar ||
+                    "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"
+                  }
+                  alt="Profile"
+                  className="w-12 h-12 rounded-full object-cover"
+                />
                 <div>
-                  <p className="font-semibold text-[rgba(0,0,0,0.9)]">{user?.name}</p>
+                  <p className="font-semibold text-[rgba(0,0,0,0.9)]">
+                    {profile ? `${profile.firstName} ${profile.lastName}` : user?.name}
+                  </p>
                   <button className="text-sm text-[rgba(0,0,0,0.6)] hover:text-[#0a66c2]">
                     Post to Anyone
                   </button>

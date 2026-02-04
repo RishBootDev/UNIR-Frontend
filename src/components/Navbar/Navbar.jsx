@@ -14,7 +14,7 @@ import { useAuth } from "@/context/useAuth";
 import UNIR_LOGO from "@/assets/UNIR_logo.jpeg";
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showBusinessMenu, setShowBusinessMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,8 +99,9 @@ export function Navbar() {
               <div className="w-6 h-6 rounded-full overflow-hidden">
                 <img
                   src={
+                    profile?.profilePictureUrl ||
                     user?.avatar ||
-                    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=48&h=48&fit=crop&crop=face"
+                    "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"
                   }
                   alt="Profile"
                   className="w-full h-full object-cover"
@@ -116,15 +117,20 @@ export function Navbar() {
                   <div className="flex gap-3">
                     <img
                       src={
+                        profile?.profilePictureUrl ||
                         user?.avatar ||
-                        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=56&h=56&fit=crop&crop=face"
+                        "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"
                       }
                       alt="Profile"
-                      className="w-14 h-14 rounded-full"
+                      className="w-14 h-14 rounded-full object-cover"
                     />
                     <div>
-                      <h4 className="font-semibold text-[rgba(0,0,0,0.9)]">{user?.name}</h4>
-                      <p className="text-sm text-[rgba(0,0,0,0.6)]">{user?.headline}</p>
+                      <h4 className="font-semibold text-[rgba(0,0,0,0.9)]">
+                        {profile ? `${profile.firstName} ${profile.lastName}` : user?.name}
+                      </h4>
+                      <p className="text-sm text-[rgba(0,0,0,0.6)]">
+                         {profile?.headline || user?.headline || "No headline yet"}
+                      </p>
                     </div>
                   </div>
                   <Link
