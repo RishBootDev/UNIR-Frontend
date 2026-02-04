@@ -118,6 +118,34 @@ export default function ProfilePage() {
   const [skillForm, setSkillForm] = useState({ name: "", proficiency: "INTERMEDIATE" });
   const [projForm, setProjForm] = useState({ name: "", role: "", description: "", technologies: "", startDate: "", endDate: "", repoUrl: "", demoUrl: "" });
   const [certForm, setCertForm] = useState({ name: "", date: "", credentialUrl: "" });
+  const [langForm, setLangForm] = useState({ name: "", proficiency: "PROFESSIONAL_WORKING" });
+  const [basicForm, setBasicForm] = useState({ firstName: "", lastName: "", headline: "", location: "", industry: "", profilePictureUrl: "" });
+  const [aboutForm, setAboutForm] = useState("");
+  const [keywordsForm, setKeywordsForm] = useState("");
+  const [contactForm, setContactForm] = useState({ phone: "", website: "", linkedin: "", github: "", twitter: "" });
+
+  // Populate basic, about, and contact forms when profile loads
+  useEffect(() => {
+    if (profile) {
+        setBasicForm({
+            firstName: profile.firstName || "",
+            lastName: profile.lastName || "",
+            headline: profile.headline || "",
+            location: profile.location || "",
+            industry: profile.industry || "",
+            profilePictureUrl: profile.profilePictureUrl || ""
+        });
+        setAboutForm(profile.summary || "");
+        setKeywordsForm(profile.topKeywords ? Array.from(profile.topKeywords).join(", ") : "");
+        setContactForm({
+            phone: profile.contactInfo?.phone || "",
+            website: profile.contactInfo?.website || "",
+            linkedin: profile.contactInfo?.linkedin || "",
+            github: profile.contactInfo?.github || "",
+            twitter: profile.contactInfo?.twitter || ""
+        });
+    }
+  }, [profile]);
 
   // Helper to format date strings (e.g. 2023-01-01 -> Jan 2023)
   const formatDate = (dateString) => {
@@ -153,6 +181,24 @@ export default function ProfilePage() {
             case 'certification':
                 await profileService.addCertification(certForm);
                 setCertForm({ name: "", date: "", credentialUrl: "" });
+                break;
+            case 'language':
+                await profileService.addLanguage(langForm);
+                setLangForm({ name: "", proficiency: "PROFESSIONAL_WORKING" });
+                break;
+            case 'basic':
+                await profileService.createProfile({ ...profile, ...basicForm });
+                break;
+            case 'about':
+                await profileService.createProfile({ ...profile, summary: aboutForm });
+                break;
+            case 'keywords':
+                // Assuming backend has a keyword endpoint or we update via createProfile
+                const keywordList = keywordsForm.split(",").map(s => s.trim()).filter(Boolean);
+                await profileService.createProfile({ ...profile, topKeywords: keywordList });
+                break;
+            case 'contact':
+                await profileService.updateContact({ ...profile.contactInfo, ...contactForm });
                 break;
         }
         await refreshProfile();
@@ -218,7 +264,7 @@ export default function ProfilePage() {
                       alt="Profile"
                       className="w-[152px] h-[152px] rounded-full border-4 border-white object-cover bg-white"
                     />
-                    <button className="p-2 rounded-full hover:bg-[rgba(0,0,0,0.04)]">
+                    <button onClick={() => setActiveModal('basic')} className="p-2 rounded-full hover:bg-[rgba(0,0,0,0.04)] transition">
                       <Pencil className="w-5 h-5 text-[rgba(0,0,0,0.6)]" />
                     </button>
                   </div>
@@ -259,7 +305,7 @@ export default function ProfilePage() {
               <div className="unir-card mt-2 p-6">
                 <div className="flex justify-between items-center mb-2">
                     <h2 className="text-xl font-semibold text-[rgba(0,0,0,0.9)]">About</h2>
-                    <button className="p-2 rounded-full hover:bg-[rgba(0,0,0,0.04)]">
+                    <button onClick={() => setActiveModal('about')} className="p-2 rounded-full hover:bg-[rgba(0,0,0,0.04)]">
                         <Pencil className="w-5 h-5 text-[rgba(0,0,0,0.6)]" />
                     </button>
                 </div>
@@ -384,7 +430,12 @@ export default function ProfilePage() {
             {/* Right Sidebar - Dynamic placeholder */}
             <div className="hidden lg:block w-[300px]">
                 <div className="unir-card p-4 mb-4">
-                    <h3 className="font-semibold text-[rgba(0,0,0,0.9)] mb-3">Profile Language</h3>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="font-semibold text-[rgba(0,0,0,0.9)]">Profile Language</h3>
+                        <button onClick={() => setActiveModal('language')} className="p-1 hover:bg-gray-100 rounded-full text-blue-600">
+                            <Plus className="w-4 h-4" />
+                        </button>
+                    </div>
                     <div className="space-y-2">
                         {profile?.languages?.length > 0 ? (
                             profile.languages.map((lang, i) => (
@@ -398,7 +449,12 @@ export default function ProfilePage() {
                 </div>
                 {profile?.topKeywords?.size > 0 && (
                     <div className="unir-card p-4 mb-4">
-                        <h3 className="font-semibold text-[rgba(0,0,0,0.9)] mb-3">Keywords</h3>
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="font-semibold text-[rgba(0,0,0,0.9)]">Keywords</h3>
+                            <button onClick={() => setActiveModal('keywords')} className="p-1 hover:bg-gray-100 rounded-full">
+                                <Pencil className="w-4 h-4 text-gray-500" />
+                            </button>
+                        </div>
                         <div className="flex flex-wrap gap-2">
                             {Array.from(profile.topKeywords).map((keyword, i) => (
                                 <span key={i} className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">#{keyword}</span>
@@ -459,7 +515,10 @@ export default function ProfilePage() {
             <Input label="Start Year" placeholder="2018" value={eduForm.startYear} onChange={v => setEduForm({...eduForm, startYear: v})} />
             <Input label="End Year" placeholder="2022" value={eduForm.endYear} onChange={v => setEduForm({...eduForm, endYear: v})} />
         </div>
-        <Input label="Grade" placeholder="3.8 GPA" value={eduForm.grade} onChange={v => setEduForm({...eduForm, grade: v})} />
+        <div className="grid grid-cols-2 gap-4">
+            <Input label="Grade" placeholder="3.8 GPA" value={eduForm.grade} onChange={v => setEduForm({...eduForm, grade: v})} />
+            <Input label="Description" value={eduForm.description} onChange={v => setEduForm({...eduForm, description: v})} />
+        </div>
       </FormModal>
 
       <FormModal 
@@ -512,15 +571,102 @@ export default function ProfilePage() {
         <Input label="Credential URL" placeholder="https://..." value={certForm.credentialUrl} onChange={v => setCertForm({...certForm, credentialUrl: v})} />
       </FormModal>
 
+      <FormModal 
+        title="Add Language" 
+        isOpen={activeModal === 'language'} 
+        onClose={() => setActiveModal(null)} 
+        onSave={() => handleSaveItem('language')}
+        isSubmitting={isSubmitting}
+      >
+        <Input label="Language" placeholder="English" value={langForm.name} onChange={v => setLangForm({...langForm, name: v})} />
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Proficiency</label>
+            <select className="w-full px-3 py-2 border rounded-md text-sm" value={langForm.proficiency} onChange={e => setLangForm({...langForm, proficiency: e.target.value})}>
+                <option value="ELEMENTARY">Elementary</option>
+                <option value="LIMITED_WORKING">Limited Working</option>
+                <option value="PROFESSIONAL_WORKING">Professional Working</option>
+                <option value="FULL_PROFESSIONAL">Full Professional</option>
+                <option value="NATIVE_OR_BILINGUAL">Native or Bilingual</option>
+            </select>
+        </div>
+      </FormModal>
+
+      <FormModal 
+        title="Edit Basic Info" 
+        isOpen={activeModal === 'basic'} 
+        onClose={() => setActiveModal(null)} 
+        onSave={() => handleSaveItem('basic')}
+        isSubmitting={isSubmitting}
+      >
+        <div className="grid grid-cols-2 gap-4">
+            <Input label="First Name" value={basicForm.firstName} onChange={v => setBasicForm({...basicForm, firstName: v})} />
+            <Input label="Last Name" value={basicForm.lastName} onChange={v => setBasicForm({...basicForm, lastName: v})} />
+        </div>
+        <Input label="Headline" value={basicForm.headline} onChange={v => setBasicForm({...basicForm, headline: v})} />
+        <div className="grid grid-cols-2 gap-4">
+            <Input label="Location" value={basicForm.location} onChange={v => setBasicForm({...basicForm, location: v})} />
+            <Input label="Industry" value={basicForm.industry} onChange={v => setBasicForm({...basicForm, industry: v})} />
+        </div>
+        <Input label="Profile Picture URL" value={basicForm.profilePictureUrl} onChange={v => setBasicForm({...basicForm, profilePictureUrl: v})} />
+      </FormModal>
+
+      <FormModal 
+        title="Edit About" 
+        isOpen={activeModal === 'about'} 
+        onClose={() => setActiveModal(null)} 
+        onSave={() => handleSaveItem('about')}
+        isSubmitting={isSubmitting}
+      >
+        <textarea 
+            className="w-full px-3 py-2 border rounded-md text-sm min-h-[150px]" 
+            value={aboutForm} 
+            onChange={e => setAboutForm(e.target.value)} 
+            placeholder="Write a brief summary..."
+        />
+      </FormModal>
+
+      <FormModal 
+        title="Edit Keywords" 
+        isOpen={activeModal === 'keywords'} 
+        onClose={() => setActiveModal(null)} 
+        onSave={() => handleSaveItem('keywords')}
+        isSubmitting={isSubmitting}
+      >
+        <Input label="Keywords (comma separated)" placeholder="Java, Spring, React..." value={keywordsForm} onChange={v => setKeywordsForm(v)} />
+        <p className="text-xs text-gray-500 mt-1">These will appear as hashtags on your profile side bar.</p>
+      </FormModal>
+
+      <FormModal 
+        title="Edit Contact Info" 
+        isOpen={activeModal === 'contact'} 
+        onClose={() => setActiveModal(null)} 
+        onSave={() => handleSaveItem('contact')}
+        isSubmitting={isSubmitting}
+      >
+        <div className="grid grid-cols-2 gap-4">
+            <Input label="Phone" value={contactForm.phone} onChange={v => setContactForm({...contactForm, phone: v})} />
+            <Input label="Website" value={contactForm.website} onChange={v => setContactForm({...contactForm, website: v})} />
+        </div>
+        <Input label="LinkedIn URL" value={contactForm.linkedin} onChange={v => setContactForm({...contactForm, linkedin: v})} />
+        <Input label="GitHub URL" value={contactForm.github} onChange={v => setContactForm({...contactForm, github: v})} />
+        <Input label="Twitter URL" value={contactForm.twitter} onChange={v => setContactForm({...contactForm, twitter: v})} />
+        <p className="text-xs text-gray-500 mt-1">Note: Email is managed via your account settings.</p>
+      </FormModal>
+
       {/* Contact Info Modal */}
       {showContactModal && (
           <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
               <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-2xl">
                   <div className="flex justify-between items-start mb-6">
                       <h2 className="text-xl font-semibold">{profile?.firstName}'s Contact Info</h2>
-                      <button onClick={() => setShowContactModal(false)} className="text-gray-400 hover:text-black">
-                          <X className="w-6 h-6" />
-                      </button>
+                      <div className="flex gap-2">
+                          <button onClick={() => { setShowContactModal(false); setActiveModal('contact'); }} className="p-1 hover:bg-gray-100 rounded-full">
+                              <Pencil className="w-5 h-5 text-gray-400 hover:text-[#0a66c2]" />
+                          </button>
+                          <button onClick={() => setShowContactModal(false)} className="text-gray-400 hover:text-black">
+                              <X className="w-6 h-6" />
+                          </button>
+                      </div>
                   </div>
                   <div className="space-y-4">
                       <div className="flex items-center gap-3">

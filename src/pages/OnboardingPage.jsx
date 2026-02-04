@@ -283,6 +283,11 @@ export default function OnboardingPage() {
          <Input label="Phone" value={basicInfo.contactInfo.phone} onChange={v => setBasicInfo({...basicInfo, contactInfo: {...basicInfo.contactInfo, phone: v}})} />
          <Input label="Website" value={basicInfo.contactInfo.website} onChange={v => setBasicInfo({...basicInfo, contactInfo: {...basicInfo.contactInfo, website: v}})} />
       </div>
+      <div className="grid grid-cols-3 gap-4">
+         <Input label="LinkedIn" placeholder="linkedin.com/in/..." value={basicInfo.contactInfo.linkedin} onChange={v => setBasicInfo({...basicInfo, contactInfo: {...basicInfo.contactInfo, linkedin: v}})} />
+         <Input label="GitHub" placeholder="github.com/..." value={basicInfo.contactInfo.github} onChange={v => setBasicInfo({...basicInfo, contactInfo: {...basicInfo.contactInfo, github: v}})} />
+         <Input label="Twitter" placeholder="twitter.com/..." value={basicInfo.contactInfo.twitter} onChange={v => setBasicInfo({...basicInfo, contactInfo: {...basicInfo.contactInfo, twitter: v}})} />
+      </div>
     </div>
   );
 
@@ -344,6 +349,10 @@ export default function OnboardingPage() {
                 <Input label="Start Year" placeholder="2018" value={edu.startYear} onChange={v => { const n = [...educations]; n[idx].startYear = v; setEducations(n); }} />
                 <Input label="End Year" placeholder="2022" value={edu.endYear} onChange={v => { const n = [...educations]; n[idx].endYear = v; setEducations(n); }} />
               </div>
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <Input label="Grade" placeholder="3.8 GPA" value={edu.grade} onChange={v => { const n = [...educations]; n[idx].grade = v; setEducations(n); }} />
+                <Input label="Description" value={edu.description} onChange={v => { const n = [...educations]; n[idx].description = v; setEducations(n); }} />
+              </div>
            </div>
         ))}
     </div>
@@ -377,6 +386,19 @@ export default function OnboardingPage() {
              <div key={idx} className="bg-gray-50 p-4 mb-4 rounded-lg border">
                 <Input label="Project Name" value={proj.name} onChange={v => { const n = [...projects]; n[idx].name = v; setProjects(n); }} />
                 <Input className="mt-2" label="Role" value={proj.role} onChange={v => { const n = [...projects]; n[idx].role = v; setProjects(n); }} />
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                    <Input type="date" label="Start Date" value={proj.startDate} onChange={v => { const n = [...projects]; n[idx].startDate = v; setProjects(n); }} />
+                    <Input type="date" label="End Date" value={proj.endDate} onChange={v => { const n = [...projects]; n[idx].endDate = v; setProjects(n); }} />
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                    <Input label="Repository URL" placeholder="https://github.com/..." value={proj.repoUrl} onChange={v => { const n = [...projects]; n[idx].repoUrl = v; setProjects(n); }} />
+                    <Input label="Demo URL" placeholder="https://..." value={proj.demoUrl} onChange={v => { const n = [...projects]; n[idx].demoUrl = v; setProjects(n); }} />
+                </div>
+                <Input className="mt-2" label="Technologies (comma separated)" placeholder="React, Node.js..." value={proj.technologies} onChange={v => { const n = [...projects]; n[idx].technologies = v; setProjects(n); }} />
+                <div className="mt-2 text-left">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea className="w-full px-3 py-2 border rounded-md text-sm" value={proj.description} onChange={e => { const n = [...projects]; n[idx].description = e.target.value; setProjects(n); }} />
+                </div>
              </div>
         ))}
         <SectionHeader title="Certifications" onAdd={() => setCertifications([...certifications, { name: "", date: "" }])} />
