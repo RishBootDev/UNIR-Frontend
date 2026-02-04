@@ -80,10 +80,22 @@ export function AuthProvider({ children }) {
 
     const accessTokenFromRes = res?.accessToken ?? res?.token ?? res?.jwt ?? res?.data?.accessToken ?? null;
     const refreshTokenFromRes = res?.refreshToken ?? res?.data?.refreshToken ?? null;
-    const userFromRes = res?.user ?? res?.data?.user ?? null;
+    let userFromRes = res?.user ?? res?.data?.user ?? null;
 
     if (!accessTokenFromRes) {
       throw new Error("Login succeeded but no access token was returned by the API.");
+    }
+
+    // Resolve user if missing from response
+    if (!userFromRes) {
+        const payload = decodeJwtPayload(accessTokenFromRes);
+        if (payload) {
+             userFromRes = {
+                 id: payload.sub || payload.id,
+                 name: payload.name || payload.email || payload.sub,
+                 email: payload.email || payload.sub
+             };
+        }
     }
 
     const nextAuth = {
@@ -94,49 +106,43 @@ export function AuthProvider({ children }) {
 
     writeAuth(nextAuth);
     setAuth(nextAuth);
-
-    // If API doesn't return user, attempt to fetch it
-    if (!userFromRes) {
-      try {
-        // const me = await authService.me();
-        // const nextAuthWithUser = { ...nextAuth, user: me?.user ?? me ?? null };
-        // writeAuth(nextAuthWithUser);
-        // setAuth(nextAuthWithUser);
-        throw new Error("Skipping /me call");
-      } catch {
-        // Fallback: try to decode user from token
-        const payload = decodeJwtPayload(accessTokenFromRes);
-        if (payload) {
-             const fallbackUser = {
-                 id: payload.sub || payload.id,
-                 name: payload.name || payload.email || payload.sub,
-                 email: payload.email || payload.sub
-             };
-             const nextAuthWithUser = { ...nextAuth, user: fallbackUser };
-             writeAuth(nextAuthWithUser);
-             setAuth(nextAuthWithUser);
-        }
-      }
-    }
   }, []);
 
   const register = useCallback(async (name, email, password) => {
-    // 1. Call signup endpoint
+    // 1. Call signup
     const userDto = await authService.register(name, email, password);
 
-    // 2. Signup successful (no error thrown).
-    // The backend returns UserDto but NO token. We must login to get the token.
-    await login(email, password);
+    // 2. Immediately login to get the token
+    const res = await authService.login(email, password);
+    const accessTokenFromRes = res?.accessToken ?? res?.token ?? res?.jwt ?? res?.data?.accessToken ?? null;
+    const refreshTokenFromRes = res?.refreshToken ?? res?.data?.refreshToken ?? null;
     
-    // 3. Update auth state with the UserDto we got from register
-    // (since login likely couldn't fetch it if /me is missing)
-    if (userDto) {
-        const currentAuth = readAuth();
-        const updatedAuth = { ...currentAuth, user: userDto };
-        writeAuth(updatedAuth);
-        setAuth(updatedAuth);
+    if (!accessTokenFromRes) {
+        throw new Error("Registration succeeded but login failed to return a token.");
     }
-  }, [login]);
+
+    // 3. Prefer the userDto from signup as it's the most complete
+    let finalUser = userDto || res?.user || res?.data?.user;
+    if (!finalUser) {
+        const payload = decodeJwtPayload(accessTokenFromRes);
+        if (payload) {
+            finalUser = {
+                id: payload.sub || payload.id,
+                name: payload.name || payload.email || payload.sub,
+                email: payload.email || payload.sub
+            };
+        }
+    }
+
+    const nextAuth = {
+      user: finalUser,
+      accessToken: accessTokenFromRes,
+      refreshToken: refreshTokenFromRes,
+    };
+
+    writeAuth(nextAuth);
+    setAuth(nextAuth);
+  }, []);
 
   const value = useMemo(
     () => ({

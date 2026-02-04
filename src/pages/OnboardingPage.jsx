@@ -102,10 +102,33 @@ const STEPS = [
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProfileCreated, setIsProfileCreated] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setIsProfileCreated(true);
+      // Pre-populate if step 1
+      if (step === 1) {
+         setBasicInfo(prev => ({
+            ...prev,
+            firstName: profile.firstName || prev.firstName,
+            lastName: profile.lastName || prev.lastName,
+            headline: profile.headline || prev.headline,
+            location: profile.location || prev.location,
+            industry: profile.industry || prev.industry,
+            profilePictureUrl: profile.profilePictureUrl || prev.profilePictureUrl,
+            summary: profile.summary || prev.summary,
+            contactInfo: {
+                ...prev.contactInfo,
+                ...profile.contactInfo
+            }
+         }));
+      }
+    }
+  }, [profile, step]);
 
   // --- FORM STATE ---
   const [basicInfo, setBasicInfo] = useState({
@@ -139,6 +162,7 @@ export default function OnboardingPage() {
     if (isProfileCreated) return true;
     try {
       const payload = {
+        userId: user?.id || null,
         firstName: basicInfo.firstName || user?.name?.split(" ")[0] || "User",
         lastName: basicInfo.lastName || user?.name?.split(" ")[1] || "",
         email: user?.email || "",
@@ -162,12 +186,26 @@ export default function OnboardingPage() {
         certifications: [],
         topKeywords: []
       };
+      
+      // If we already have a profile in context/auth but local state didn't catch it
+      if (profile && profile.userId === user?.id) {
+          setIsProfileCreated(true);
+          // If silent is false (initial Step 1), we might still want to update it
+          // But usually this means we should just update.
+          if (!silent) {
+               await profileService.createProfile(payload); // Acts as update
+          }
+          return true;
+      }
+
       await profileService.createProfile(payload);
       setIsProfileCreated(true);
       return true;
     } catch (err) {
-      console.error("Profile creation failed:", err);
-      if (!silent) alert("Failed to initialize profile. Please check basic info.");
+      console.error("Failed to initialize profile:", err);
+      if (!silent) {
+        alert("Failed to initialize profile. Please check basic info.");
+      }
       return false;
     }
   };
@@ -177,56 +215,75 @@ export default function OnboardingPage() {
     let success = true;
 
     try {
-        // Ensure profile exists before adding sub-entities
-        if (step > 1 && !isProfileCreated) {
-            const created = await handleCreateProfile(true);
+        // Ensure profile exists before any step can proceed
+        // If step is 1, case 1 will handle the creation/update, so we skip this check
+        if (!isProfileCreated && step !== 1) {
+            const created = await handleCreateProfile(true); 
             if (!created) throw new Error("Could not create profile");
         }
 
         switch (step) {
             case 1:
-                success = await handleCreateProfile();
+                // Force an update of the basic info even if profile exists
+                // The handleCreateProfile function is designed to be idempotent-ish or we can call API directly
+                // But handleCreateProfile uses the current 'basicInfo' state which has our edits.
+                // We'll pass silent=true so it doesn't alert on success, but we want it to actually PUT the data.
+                // However, handleCreateProfile checks `if (isProfileCreated) return true`.
+                // We need to bypass that check or forcefully call the update endpoint.
+                
+                // Let's manually construct the payload and call createProfile which acts as addOrUpdate
+                 const payload = {
+                    userId: user?.id || null,
+                    firstName: basicInfo.firstName,
+                    lastName: basicInfo.lastName,
+                    email: user?.email,
+                    headline: basicInfo.headline,
+                    location: basicInfo.location,
+                    industry: basicInfo.industry,
+                    profilePictureUrl: basicInfo.profilePictureUrl,
+                    summary: basicInfo.summary, // maintain summary if it exists
+                    contactInfo: {
+                        ...basicInfo.contactInfo,
+                        email: user?.email || ""
+                    }
+                  };
+                  await profileService.createProfile(payload);
                 break;
             case 2:
-                // Summary is saved inside profile, we already created profile in step 1 or will when they hit next
-                // If they reached here, handleCreateProfile was already called or we call it now
-                if (!isProfileCreated) await handleCreateProfile();
+                // Step 2: Update summary independently
+                await profileService.updateSummary(basicInfo.summary || "");
                 break;
             case 3:
-                for (const exp of experiences.filter(e => e.company && e.title)) {
-                    await profileService.addExperience({
-                        ...exp,
-                        technologies: exp.technologies ? exp.technologies.split(",").map(s => s.trim()).filter(Boolean) : []
-                    });
-                }
+                // Step 3: Replace all experiences (idempotent)
+                const validExps = experiences.filter(e => e.company && e.title).map(exp => ({
+                    ...exp,
+                    technologies: exp.technologies ? exp.technologies.split(",").map(s => s.trim()).filter(Boolean) : []
+                }));
+                await profileService.setExperiences(validExps);
                 break;
             case 4:
-                for (const edu of educations.filter(e => e.institution && e.degree)) {
-                    await profileService.addEducation({
-                        ...edu,
-                        startYear: edu.startYear ? parseInt(edu.startYear) : null,
-                        endYear: edu.endYear ? parseInt(edu.endYear) : null
-                    });
-                }
+                // Step 4: Replace all educations (idempotent)
+                const validEdus = educations.filter(e => e.institution && e.degree).map(edu => ({
+                    ...edu,
+                    startYear: edu.startYear ? parseInt(edu.startYear) : null,
+                    endYear: edu.endYear ? parseInt(edu.endYear) : null
+                }));
+                await profileService.setEducations(validEdus);
                 break;
             case 5:
-                for (const skill of skills.filter(s => s.name)) {
-                    await profileService.addSkill(skill);
-                }
-                for (const lang of languages.filter(l => l.name)) {
-                    await profileService.addLanguage(lang);
-                }
+                // Step 5: Replace all skills and languages (idempotent)
+                const validSkills = skills.filter(s => s.name);
+                const validLangs = languages.filter(l => l.name);
+                await profileService.setSkillsAndLanguages(validSkills, validLangs);
                 break;
             case 6:
-                for (const proj of projects.filter(p => p.name)) {
-                   await profileService.addProject({
-                       ...proj,
-                       technologies: proj.technologies ? proj.technologies.split(",").map(s => s.trim()).filter(Boolean) : []
-                   });
-                }
-                for (const cert of certifications.filter(c => c.name)) {
-                    await profileService.addCertification(cert);
-                }
+                // Step 6: Replace all projects and certifications (idempotent)
+                const validProjs = projects.filter(p => p.name).map(proj => ({
+                    ...proj,
+                    technologies: proj.technologies ? proj.technologies.split(",").map(s => s.trim()).filter(Boolean) : []
+                }));
+                const validCerts = certifications.filter(c => c.name);
+                await profileService.setProjectsAndCerts(validProjs, validCerts);
                 break;
             default:
                 break;
@@ -240,6 +297,7 @@ export default function OnboardingPage() {
     }
     return success;
   };
+
 
   const nextStep = async () => {
       const saved = await handleSaveStep();

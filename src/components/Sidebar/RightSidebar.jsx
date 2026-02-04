@@ -35,53 +35,60 @@ export function RightSidebar() {
 
   return (
     <aside className="w-[300px] flex-shrink-0">
-      <div className="unir-card p-3">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-[rgba(0,0,0,0.9)]">UNIR News</h3>
-          <Info className="w-4 h-4 text-[rgba(0,0,0,0.6)]" />
+      <div className="unir-card p-5 unir-card-hover">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-slate-800 tracking-tight">UNIR Spotlight</h3>
+          <Info className="w-4 h-4 text-slate-400 cursor-help hover:text-blue-500 transition-colors" />
         </div>
-        <ul className="space-y-1">
+        <ul className="space-y-3">
           {newsItems.slice(0, showAllNews ? newsItems.length : 3).map((item, index) => (
-            <li key={index}>
-              <a href="#" className="block py-1 hover:bg-[rgba(0,0,0,0.04)] -mx-3 px-3">
-                <p className="text-sm font-semibold text-[rgba(0,0,0,0.9)] leading-tight">
+            <li key={index} className="group/news">
+              <a href="#" className="block py-1 hover:bg-slate-50 transition-colors rounded-xl -mx-2 px-2">
+                <p className="text-sm font-bold text-slate-700 leading-tight group-hover/news:text-blue-600 transition-colors">
                   {item.title}
                 </p>
-                <p className="text-xs text-[rgba(0,0,0,0.6)] mt-0.5">
-                  {item.time} • {item.readers} readers
-                </p>
+                <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-1.5 py-0.5 rounded-md">{item.time}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">• {item.readers} readers</span>
+                </div>
               </a>
             </li>
           ))}
         </ul>
         <button
           onClick={() => setShowAllNews(!showAllNews)}
-          className="flex items-center gap-1 mt-2 text-sm text-[rgba(0,0,0,0.6)] hover:text-[#0a66c2]"
+          className="flex items-center justify-center gap-1 mt-4 text-[11px] font-bold text-blue-600 hover:bg-blue-50 w-full py-2 rounded-xl transition-all"
         >
-          {showAllNews ? "Show less" : "Show more"}{" "}
-          <ChevronDown className={`w-4 h-4 transition-transform ${showAllNews ? "rotate-180" : ""}`} />
+          {showAllNews ? "View less stories" : "View more stories"}{" "}
+          <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showAllNews ? "rotate-180" : ""}`} />
         </button>
       </div>
 
-      <div className="unir-card mt-2 p-3">
-        <h3 className="font-semibold text-[rgba(0,0,0,0.9)] mb-3">Add to your feed</h3>
-        <div className="space-y-3">
+      <div className="unir-card mt-3 p-5 unir-card-hover">
+        <h3 className="font-bold text-slate-800 tracking-tight mb-4">Expand your network</h3>
+        <div className="space-y-5">
           {suggestions.map((person, index) => (
-            <div key={index} className="flex gap-2">
-              <img src={person.avatar} alt={person.name} className="w-12 h-12 rounded-full" />
+            <div key={index} className="flex gap-3 group/person">
+              <img src={person.avatar} alt={person.name} className="w-12 h-12 rounded-2xl object-cover ring-2 ring-transparent group-hover/person:ring-blue-100 transition-all shadow-sm" />
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-[rgba(0,0,0,0.9)] truncate">{person.name}</p>
-                <p className="text-xs text-[rgba(0,0,0,0.6)] truncate">{person.headline}</p>
-                <p className="text-xs text-[rgba(0,0,0,0.6)]">{person.mutual} mutual connections</p>
-                <button className="mt-1 flex items-center gap-1 px-3 py-1 text-sm font-semibold text-[rgba(0,0,0,0.6)] border border-[rgba(0,0,0,0.6)] rounded-full hover:bg-[rgba(0,0,0,0.04)] hover:border-black hover:text-black transition-colors">
-                  <span className="text-lg leading-none">+</span> Follow
+                <p className="font-bold text-sm text-slate-800 truncate leading-tight">{person.name}</p>
+                <p className="text-[11px] text-slate-500 truncate mt-0.5">{person.headline}</p>
+                <div className="flex items-center gap-1 mt-1">
+                    <div className="flex -space-x-1.5">
+                        <div className="w-3 h-3 rounded-full bg-blue-100 border border-white" />
+                        <div className="w-3 h-3 rounded-full bg-indigo-100 border border-white" />
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium">{person.mutual} mutual connections</p>
+                </div>
+                <button className="mt-2 flex items-center justify-center gap-1 w-full py-1.5 text-xs font-bold text-blue-600 border-2 border-blue-50 rounded-xl hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all active:scale-95 shadow-sm shadow-blue-500/5">
+                  <span className="text-sm leading-none">+</span> Connect
                 </button>
               </div>
             </div>
           ))}
         </div>
-        <a href="#" className="block mt-3 text-sm text-[rgba(0,0,0,0.6)] hover:text-[#0a66c2]">
-          View all recommendations →
+        <a href="#" className="block mt-5 text-[11px] font-bold text-center text-slate-500 hover:text-blue-600 transition-colors py-2 border-t border-slate-50">
+          See all suggestions Manager
         </a>
       </div>
 

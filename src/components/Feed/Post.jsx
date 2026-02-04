@@ -38,34 +38,37 @@ export const Post = memo(function Post({ post }) {
   };
 
   return (
-    <article className="unir-card">
-      <div className="p-4">
+    <article className="unir-card unir-card-hover group/post overflow-hidden">
+      <div className="p-6">
         <div className="flex items-start justify-between">
-          <div className="flex gap-2">
-            <img
-              src={
-                author.avatar ||
-                "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
-              }
-              alt={author.name || "Profile"}
-              className="w-12 h-12 rounded-full"
-            />
+          <div className="flex gap-4">
+            <div className="relative">
+                <img
+                src={
+                    author.avatar ||
+                    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+                }
+                alt={author.name || "Profile"}
+                className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 shadow-sm"
+                />
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full" />
+            </div>
             <div>
-              <h3 className="font-semibold text-[rgba(0,0,0,0.9)] hover:text-[#0a66c2] hover:underline cursor-pointer">
+              <h3 className="font-extrabold text-slate-900 hover:text-blue-600 transition-colors cursor-pointer tracking-tight">
                 {author.name || "Unknown"}
               </h3>
-              <p className="text-xs text-[rgba(0,0,0,0.6)] line-clamp-1">{author.headline || ""}</p>
-              <p className="text-xs text-[rgba(0,0,0,0.6)] flex items-center gap-1">
-                {post?.timeAgo || ""} • <Globe className="w-3 h-3" />
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest line-clamp-1 mb-1">{author.headline || "Professional"}</p>
+              <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 bg-slate-50 w-fit px-2 py-0.5 rounded-lg">
+                {post?.timeAgo || "Recently"} • <Globe className="w-3 h-3" />
               </p>
             </div>
           </div>
-          <button className="p-2 rounded-full hover:bg-[rgba(0,0,0,0.04)] transition-colors">
-            <MoreHorizontal className="w-5 h-5 text-[rgba(0,0,0,0.6)]" />
+          <button className="p-2.5 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all active:scale-90">
+            <MoreHorizontal className="w-5 h-5" />
           </button>
         </div>
-        <div className="mt-3">
-          <p className="text-sm text-[rgba(0,0,0,0.9)] whitespace-pre-wrap">{post?.content || ""}</p>
+        <div className="mt-5">
+          <p className="text-base text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">{post?.content || ""}</p>
         </div>
       </div>
 
@@ -75,92 +78,93 @@ export const Post = memo(function Post({ post }) {
         </div>
       )}
 
-      <div className="px-4 py-2 flex items-center justify-between text-xs text-[rgba(0,0,0,0.6)]">
-        <div className="flex items-center gap-1">
-          <span className="flex items-center justify-center w-4 h-4 bg-[#0a66c2] rounded-full">
-            <ThumbsUp className="w-2.5 h-2.5 text-white fill-white" />
-          </span>
-          <span>{likeCount}</span>
+      <div className="px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+            <div className="flex -space-x-2">
+                <div className="w-6 h-6 rounded-full bg-blue-600 border-2 border-white flex items-center justify-center z-10">
+                    <ThumbsUp className="w-3 h-3 text-white fill-white" />
+                </div>
+                <div className="w-6 h-6 rounded-full bg-red-500 border-2 border-white flex items-center justify-center z-0">
+                    <div className="w-2 h-2 bg-white rounded-full opacity-50" />
+                </div>
+            </div>
+            <span className="text-xs font-bold text-slate-500">{likeCount} reactions</span>
         </div>
-        <div className="flex gap-3">
-          <span>{commentCount} comments</span>
-          <span>{post?.reposts ?? 0} reposts</span>
+        <div className="flex gap-4">
+          <button className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">{commentCount} comments</button>
+          <button className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">{post?.reposts ?? 0} reposts</button>
         </div>
       </div>
 
-      <div className="border-t border-[rgba(0,0,0,0.08)] mx-4" />
+      <div className="mx-6 border-t border-slate-50" />
 
-      <div className="flex items-center justify-around py-1 px-2">
-        <button
-          onClick={handleLike}
-          className={`flex items-center gap-2 px-4 py-3 rounded hover:bg-[rgba(0,0,0,0.04)] transition-colors ${
-            liked ? "text-[#0a66c2]" : "text-[rgba(0,0,0,0.6)]"
-          }`}
-        >
-          <ThumbsUp className={`w-5 h-5 ${liked ? "fill-[#0a66c2]" : ""}`} />
-          <span className="text-sm font-semibold">Like</span>
-        </button>
-        <button
-          onClick={() => setShowComments(!showComments)}
-          className="flex items-center gap-2 px-4 py-3 rounded hover:bg-[rgba(0,0,0,0.04)] transition-colors text-[rgba(0,0,0,0.6)]"
-        >
-          <MessageCircle className="w-5 h-5" />
-          <span className="text-sm font-semibold">Comment</span>
-        </button>
-        <button className="flex items-center gap-2 px-4 py-3 rounded hover:bg-[rgba(0,0,0,0.04)] transition-colors text-[rgba(0,0,0,0.6)]">
-          <Repeat2 className="w-5 h-5" />
-          <span className="text-sm font-semibold">Repost</span>
-        </button>
-        <button className="flex items-center gap-2 px-4 py-3 rounded hover:bg-[rgba(0,0,0,0.04)] transition-colors text-[rgba(0,0,0,0.6)]">
-          <Send className="w-5 h-5" />
-          <span className="text-sm font-semibold">Send</span>
-        </button>
+      <div className="flex items-center justify-between p-2 px-6">
+        {[
+            { icon: ThumbsUp, label: "Like", active: liked, onClick: handleLike },
+            { icon: MessageCircle, label: "Comment", onClick: () => setShowComments(!showComments) },
+            { icon: Repeat2, label: "Repost" },
+            { icon: Send, label: "Send" }
+        ].map(action => (
+            <button
+                key={action.label}
+                onClick={action.onClick}
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl hover:bg-slate-50 transition-all group/action ${
+                    action.active ? "text-blue-600" : "text-slate-500"
+                }`}
+            >
+                <action.icon className={`w-5 h-5 group-hover/action:scale-110 transition-transform ${action.active ? "fill-blue-600" : ""}`} />
+                <span className="text-xs font-bold uppercase tracking-widest">{action.label}</span>
+            </button>
+        ))}
       </div>
 
       {showComments && (
-        <div className="px-4 pb-4 border-t border-[rgba(0,0,0,0.08)]">
-          <div className="mt-3 space-y-3">
-            {comments.length === 0 && (
-              <p className="text-sm text-[rgba(0,0,0,0.6)]">No comments yet. Be the first to comment.</p>
-            )}
+        <div className="px-6 pb-6 pt-2 border-t border-slate-50 bg-slate-50/30 animate-in slide-in-from-top-2 duration-300">
+          <div className="mt-4 space-y-4">
             {comments.map((c) => (
-              <div key={c.id} className="flex gap-2">
-                <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.08)] flex items-center justify-center text-xs font-semibold text-[rgba(0,0,0,0.6)]">
+              <div key={c.id} className="flex gap-3 items-start">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-sm shrink-0">
                   {(c.author?.name || "U").slice(0, 1).toUpperCase()}
                 </div>
                 <div className="flex-1">
-                  <div className="unir-card p-3">
-                    <p className="text-sm font-semibold text-[rgba(0,0,0,0.9)]">{c.author?.name || "Unknown"}</p>
-                    <p className="text-sm text-[rgba(0,0,0,0.9)] mt-1 whitespace-pre-wrap">{c.content || ""}</p>
+                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                    <div className="flex justify-between items-center mb-1">
+                        <p className="text-sm font-extrabold text-slate-900 tracking-tight">{c.author?.name || "Unknown"}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">{c.timeAgo || "Now"}</p>
+                    </div>
+                    <p className="text-sm text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">{c.content || ""}</p>
                   </div>
-                  <p className="text-xs text-[rgba(0,0,0,0.6)] mt-1">{c.timeAgo || ""}</p>
+                  <div className="flex gap-4 px-2 mt-1">
+                    <button className="text-[10px] font-black text-slate-400 hover:text-blue-600 uppercase tracking-widest transition-colors">Like</button>
+                    <button className="text-[10px] font-black text-slate-400 hover:text-blue-600 uppercase tracking-widest transition-colors">Reply</button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-3 mt-6">
             <img
               src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
               alt="Your profile"
-              className="w-10 h-10 rounded-full"
+              className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-md shrink-0"
             />
-            <div className="flex-1 relative">
+            <div className="flex-1 relative group">
               <input
                 type="text"
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submitComment()}
-                placeholder="Add a comment..."
-                className="w-full px-3 py-2 border border-[rgba(0,0,0,0.3)] rounded-full text-sm focus:outline-none focus:border-[#0a66c2]"
+                placeholder="Share your thoughts..."
+                className="w-full px-5 py-3.5 bg-white border border-slate-100 rounded-2xl text-sm font-medium focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all"
               />
+              <button
+                onClick={submitComment}
+                disabled={!commentText.trim()}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-30 disabled:grayscale transition-all shadow-lg shadow-blue-500/30"
+              >
+                <Send className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              onClick={submitComment}
-              disabled={!commentText.trim()}
-              className="px-4 py-2 bg-[#0a66c2] text-white font-semibold rounded-full hover:bg-[#004182] disabled:opacity-50"
-            >
-              Post
-            </button>
           </div>
         </div>
       )}

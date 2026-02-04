@@ -20,6 +20,7 @@ export function SubscriptionCard() {
   }, [user?.id]);
 
   const loadStatus = async () => {
+    if (!user?.id) return;
     try {
       setLoading(true);
       const data = await SubscriptionService.getStatus(user.id);

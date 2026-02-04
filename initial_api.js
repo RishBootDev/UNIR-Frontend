@@ -1,7 +1,7 @@
-import { getAccessToken, getUserId } from "@/auth/authStorage";
+import { getAccessToken } from "@/auth/authStorage";
 // import { mockApiFetch } from "@/mock/mockApi";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/unir";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 function joinUrl(base, path) {
   if (!base) return path;
@@ -28,14 +28,12 @@ async function apiFetch(endpoint, options = {}) {
   } = options;
 
   const _token = auth ? getAccessToken() : null;
-  const _userId = auth ? getUserId() : null;
 
   // kept for future re-enable of API calls
   const _nextHeaders = {
     ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     ..._headers,
     ...(_token ? { Authorization: `Bearer ${_token}` } : {}),
-    ...(_userId ? { "X-User-Id": String(_userId) } : {}),
   };
 
   // kept for future re-enable of API calls
@@ -43,13 +41,11 @@ async function apiFetch(endpoint, options = {}) {
     body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body);
 
   const url = joinUrl(API_BASE_URL, endpoint);
-  // API DISABLED â€“ using dummy data for frontend testing
+  // API DISABLED GÇô using dummy data for frontend testing
   // const response = await fetch(url, { method, headers: _nextHeaders, body: _requestBody, signal });
   // const data = await mockApiFetch(url, { method, body, signal }); // DISABLED MOCK
   
   console.log(`[API] Fetching ${url} with method ${method}`);
-  if (_userId) console.log(`[API] X-User-Id: ${_userId}`);
-  
   const response = await fetch(url, { method, headers: _nextHeaders, body: _requestBody, signal });
 
   if (!response.ok) {
@@ -58,26 +54,10 @@ async function apiFetch(endpoint, options = {}) {
   }
 
   const contentType = response.headers.get("content-type");
-  const isJson = contentType && contentType.includes("application/json");
-
-  if (isJson) {
-    try {
-      return await response.json();
-    } catch (err) {
-      console.error("[API] Failed to parse JSON:", err);
-      // Fallback to text if JSON parse fails
-    }
+  if (contentType && contentType.includes("application/json")) {
+    return response.json();
   }
-
-  const text = await response.text();
-  
-  // Defensive: If the text looks like a Java exception, throw it as an error 
-  // even if response.ok was true (unlikely but possible if misconfigured)
-  if (text.includes("Exception:") || text.includes("at com.rishbootdev")) {
-     throw new Error(text);
-  }
-
-  return text;
+  return response.text();
 }
 
 export const authService = {
@@ -104,48 +84,29 @@ export const authService = {
 };
 
 export const postsService = {
-  getFeed: (options) => apiFetch("/post", options),
-  createPost: (content) =>
-    apiFetch("/post", {
+  getFeed: (options) => apiFetch("/posts/feed", options),
+  createPost: (content, media) =>
+    apiFetch("/posts", {
       method: "POST",
-      body: { content },
+      body: { content, media },
     }),
-  likePost: (postId) => apiFetch(`/likes/${postId}`, { method: "POST" }),
-  unlikePost: (postId) => apiFetch(`/likes/${postId}`, { method: "DELETE" }),
+  likePost: (postId) => apiFetch(`/posts/${postId}/like`, { method: "POST" }),
   commentOnPost: (postId, content) =>
-    apiFetch(`/post/${postId}/comments`, {
+    apiFetch(`/posts/${postId}/comments`, {
       method: "POST",
       body: { content },
     }),
 };
 
 export const profileService = {
-  getProfile: () => apiFetch("/profile"),
-  getProfileById: (userId) => apiFetch(`/profile/${userId}`),
-  getProfilesByName: (name) => apiFetch(`/profile/byName/${encodeURIComponent(name)}`),
+  getProfile: (userId) => apiFetch(`/users/${userId}`),
+  updateProfile: (data) =>
+    apiFetch("/users/me", {
+      method: "PATCH",
+      body: data,
+    }),
   createProfile: (data) => apiFetch("/profile/addPerson", { method: "POST", body: data }),
-  
-  // Individual update endpoints (for later use on Profile page)
-  updateContact: (data) => apiFetch("/profile/contact", { method: "POST", body: data }),
-  addExperience: (data) => apiFetch("/profile/experience", { method: "POST", body: data }),
-  removeExperience: (id) => apiFetch(`/profile/experience/${id}`, { method: "DELETE" }),
-  addEducation: (data) => apiFetch("/profile/education", { method: "POST", body: data }),
-  removeEducation: (id) => apiFetch(`/profile/education/${id}`, { method: "DELETE" }),
-  addProject: (data) => apiFetch("/profile/project", { method: "POST", body: data }),
-  removeProject: (id) => apiFetch(`/profile/project/${id}`, { method: "DELETE" }),
-  addSkill: (data) => apiFetch("/profile/skill", { method: "POST", body: data }),
-  removeSkill: (id) => apiFetch(`/profile/skill/${id}`, { method: "DELETE" }),
-  addCertification: (data) => apiFetch("/profile/certification", { method: "POST", body: data }),
-  removeCertification: (id) => apiFetch(`/profile/certification/${id}`, { method: "DELETE" }),
-  addLanguage: (data) => apiFetch("/profile/language", { method: "POST", body: data }),
-  addKeyword: (keyword) => apiFetch("/profile/keyword", { method: "POST", body: keyword }),
-
-  // ========== STEP-SPECIFIC METHODS (Idempotent) ==========
-  updateSummary: (summary) => apiFetch("/profile/summary", { method: "PUT", body: summary }),
-  setExperiences: (experiences) => apiFetch("/profile/experiences", { method: "PUT", body: experiences }),
-  setEducations: (educations) => apiFetch("/profile/educations", { method: "PUT", body: educations }),
-  setSkillsAndLanguages: (skills, languages) => apiFetch("/profile/skills-languages", { method: "PUT", body: { skills, languages } }),
-  setProjectsAndCerts: (projects, certifications) => apiFetch("/profile/projects-certs", { method: "PUT", body: { projects, certifications } }),
+  getConnections: () => apiFetch("/connections"),
 };
 
 export const companyService = {
@@ -184,9 +145,5 @@ export const notificationsService = {
   getNotifications: (options) => apiFetch("/notifications", options),
   markAsRead: (notificationId) =>
     apiFetch(`/notifications/${notificationId}/read`, { method: "POST" }),
-};
-
-export const educationService = {
-  getProfilesByInstitute: (institute) => apiFetch(`/education/getProfiles/${encodeURIComponent(institute)}`),
 };
 

@@ -16,83 +16,91 @@ export function LeftSidebar() {
   ];
 
   return (
-    <aside className="w-[225px] flex-shrink-0">
-      <div className="unir-card overflow-hidden">
-        <div className="h-14 bg-gradient-to-r from-[#0a66c2] to-[#0073b1]" />
-        <div className="px-3 pb-3 -mt-8">
-          <Link to="/profile">
+    <aside className="w-[240px] flex-shrink-0">
+      <div className="unir-card overflow-hidden unir-card-hover group">
+        <div className="h-16 bg-gradient-to-br from-blue-600 to-indigo-700 relative overflow-hidden">
+            <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+        </div>
+        <div className="px-4 pb-4 -mt-10 relative z-10">
+          <Link to="/profile" className="block w-20 h-20 mx-auto transition-transform active:scale-95">
             <img
               src={profile?.profilePictureUrl || user?.avatar || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"}
               alt="Profile"
-              className="w-16 h-16 rounded-full border-2 border-white mx-auto object-cover"
+              className="w-full h-full rounded-2xl border-4 border-white shadow-md object-cover bg-white"
             />
           </Link>
-          <div className="text-center mt-2">
-            <Link to="/profile" className="font-semibold text-[rgba(0,0,0,0.9)] hover:underline">
+          <div className="text-center mt-3">
+            <Link to="/profile" className="font-bold text-slate-900 hover:text-blue-600 transition-colors block leading-tight">
               {profile ? `${profile.firstName} ${profile.lastName}` : user?.name}
             </Link>
-            <p className="text-xs text-[rgba(0,0,0,0.6)] mt-0.5 line-clamp-2">
+            <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 px-2 leading-relaxed">
               {profile?.headline || user?.headline || "No headline yet"}
             </p>
           </div>
         </div>
-        <div className="border-t border-[rgba(0,0,0,0.08)] py-3">
-          <Link to="/profile" className="flex justify-between px-3 py-1 text-xs hover:bg-[rgba(0,0,0,0.04)]">
-            <span className="text-[rgba(0,0,0,0.6)]">Connections</span>
-            <span className="text-[#0a66c2] font-semibold">{profile?.connections?.length || 0}</span>
+        <div className="border-t border-slate-100 py-4">
+          <Link to="/profile" className="flex justify-between items-center px-4 py-2 text-[11px] hover:bg-slate-50 transition-colors group/row">
+            <span className="text-slate-500 font-medium">Connections</span>
+            <span className="text-blue-600 font-bold group-hover/row:scale-110 transition-transform">{profile?.connections?.length || 0}</span>
           </Link>
-          <Link to="/profile" className="flex justify-between px-3 py-1 text-xs hover:bg-[rgba(0,0,0,0.04)]">
-            <span className="text-[rgba(0,0,0,0.6)]">Who viewed your profile</span>
-            <span className="text-[#0a66c2] font-semibold">142</span>
-          </Link>
-        </div>
-        <div className="border-t border-[rgba(0,0,0,0.08)] px-3 py-3">
-          <p className="text-xs text-[rgba(0,0,0,0.6)]">Access exclusive tools & insights</p>
-          <Link to="/premium" className="flex items-center gap-1 mt-1 text-xs font-semibold text-[rgba(0,0,0,0.9)] hover:text-[#0a66c2]">
-            <span className="text-amber-600">⬛</span> Try Premium for free
+          <Link to="/profile" className="flex justify-between items-center px-4 py-2 text-[11px] hover:bg-slate-50 transition-colors group/row">
+            <span className="text-slate-500 font-medium">Profile Views</span>
+            <span className="text-blue-600 font-bold group-hover/row:scale-110 transition-transform">142</span>
           </Link>
         </div>
-        <div className="border-t border-[rgba(0,0,0,0.08)] px-3 py-3">
-          <Link to="/saved" className="flex items-center gap-2 text-xs text-[rgba(0,0,0,0.6)] hover:text-[#0a66c2]">
-            <Bookmark className="w-4 h-4" /> Saved items
+        <div className="border-t border-slate-100 px-4 py-4 bg-slate-50/50">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">My Premium</p>
+          <Link to="/premium" className="flex items-center gap-2 text-[11px] font-bold text-slate-700 hover:text-blue-600 transition-colors">
+            <div className="w-5 h-5 bg-gradient-to-br from-amber-400 to-orange-500 rounded flex items-center justify-center text-[10px] text-white shadow-sm">
+                ★
+            </div>
+            Access exclusive insights
+          </Link>
+        </div>
+        <div className="border-t border-slate-100 px-4 py-3 bg-white">
+          <Link to="/saved" className="flex items-center gap-3 text-[11px] font-bold text-slate-600 hover:text-blue-600 transition-colors group/link">
+            <Bookmark className="w-4 h-4 group-hover/link:fill-blue-600 transition-all" /> 
+            Saved items
           </Link>
         </div>
       </div>
 
-      <div className="unir-card mt-2 py-2">
-        <div className="px-3 py-1">
-          <p className="text-xs font-semibold text-[rgba(0,0,0,0.6)]">Recent</p>
+      <div className="unir-card mt-3 py-3 overflow-hidden">
+        <div className="px-4 py-1 mb-2">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recent</p>
         </div>
-        {recentGroups.slice(0, showMoreRecent ? recentGroups.length : 3).map((group, index) => (
-          <Link
-            key={index}
-            to={`/groups/${index}`}
-            className="flex items-center gap-2 px-3 py-2 text-xs text-[rgba(0,0,0,0.6)] hover:bg-[rgba(0,0,0,0.04)]"
-          >
-            <span>{group.icon}</span>
-            <span className="truncate">{group.name}</span>
-          </Link>
-        ))}
+        <div className="space-y-1">
+            {recentGroups.slice(0, showMoreRecent ? recentGroups.length : 3).map((group, index) => (
+              <Link
+                key={index}
+                to={`/groups/${index}`}
+                className="flex items-center gap-3 px-4 py-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all"
+              >
+                <span className="text-sm">{group.icon}</span>
+                <span className="truncate">{group.name}</span>
+              </Link>
+            ))}
+        </div>
         <button
           onClick={() => setShowMoreRecent(!showMoreRecent)}
-          className="flex items-center gap-1 px-3 py-2 text-xs text-[rgba(0,0,0,0.6)] hover:bg-[rgba(0,0,0,0.04)] w-full"
+          className="flex items-center justify-center gap-1 mt-2 px-4 py-2 text-[10px] font-bold text-blue-600 hover:bg-blue-50 w-full transition-colors rounded-xl mx-auto max-w-[90%]"
         >
           {showMoreRecent ? (
             <>
-              <ChevronUp className="w-4 h-4" /> Show less
+              Show less <ChevronUp className="w-3 h-3" />
             </>
           ) : (
             <>
-              <ChevronDown className="w-4 h-4" /> Show more
+              Show more <ChevronDown className="w-3 h-3" />
             </>
           )}
         </button>
-        <div className="border-t border-[rgba(0,0,0,0.08)] mt-1 pt-2">
+        <div className="border-t border-slate-100 mt-2 pt-2">
           <Link
             to="/groups"
-            className="flex items-center gap-2 px-3 py-2 text-xs text-[rgba(0,0,0,0.6)] hover:bg-[rgba(0,0,0,0.04)]"
+            className="flex items-center justify-center gap-2 px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-blue-600 transition-colors"
           >
-            <Plus className="w-4 h-4" /> Discover more
+            <Plus className="w-4 h-4" /> Discover communities
           </Link>
         </div>
       </div>
