@@ -55,3 +55,7 @@ export function getAccessToken() {
   return readAuth().accessToken;
 }
 
+export function getUserId() {
+  return readAuth().user?.id || null;
+}
+

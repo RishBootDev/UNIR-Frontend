@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/auth/authStorage";
+import { getAccessToken, getUserId } from "@/auth/authStorage";
 // import { mockApiFetch } from "@/mock/mockApi";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
@@ -28,12 +28,14 @@ async function apiFetch(endpoint, options = {}) {
   } = options;
 
   const _token = auth ? getAccessToken() : null;
+  const _userId = auth ? getUserId() : null;
 
   // kept for future re-enable of API calls
   const _nextHeaders = {
     ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     ..._headers,
     ...(_token ? { Authorization: `Bearer ${_token}` } : {}),
+    ...(_userId ? { "X-User-Id": _userId } : {}),
   };
 
   // kept for future re-enable of API calls
