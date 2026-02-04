@@ -1,10 +1,12 @@
 import { Navbar } from "@/components/Navbar/Navbar";
 import { useAuth } from "@/context/useAuth";
-import { Camera, Pencil, Briefcase, GraduationCap, Award, ExternalLink, Globe } from "lucide-react";
+import { Camera, Pencil, Briefcase, GraduationCap, Award, ExternalLink, Globe, Mail, Phone, Link as LinkIcon, Twitter, Linkedin, Github, X } from "lucide-react";
 import { SubscriptionCard } from "@/components/Subscription/SubscriptionCard";
+import { useState } from "react";
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
+  const [showContactModal, setShowContactModal] = useState(false);
 
   // Helper to format date strings (e.g. 2023-01-01 -> Jan 2023)
   const formatDate = (dateString) => {
@@ -75,7 +77,12 @@ export default function ProfilePage() {
                         {profile?.location && profile?.industry && <span>•</span>}
                         {profile?.industry && <span>{profile.industry}</span>}
                         {(profile?.location || profile?.industry) && <span>•</span>}
-                        <button className="text-[#0a66c2] font-semibold hover:underline">Contact info</button>
+                        <button 
+                            onClick={() => setShowContactModal(true)}
+                            className="text-[#0a66c2] font-semibold hover:underline"
+                        >
+                            Contact info
+                        </button>
                     </div>
                     <p className="text-sm text-[#0a66c2] font-semibold mt-1">{profile?.connections?.length || 0} connections</p>
                   </div>
@@ -229,6 +236,16 @@ export default function ProfilePage() {
                         ) : <span className="text-sm text-gray-400">Not specified</span>}
                     </div>
                 </div>
+                {profile?.topKeywords?.size > 0 && (
+                    <div className="unir-card p-4 mb-4">
+                        <h3 className="font-semibold text-[rgba(0,0,0,0.9)] mb-3">Keywords</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {Array.from(profile.topKeywords).map((keyword, i) => (
+                                <span key={i} className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">#{keyword}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
                 <div className="unir-card p-4">
                     <h3 className="font-semibold text-[rgba(0,0,0,0.9)] mb-3">People also viewed</h3>
                     <p className="text-sm text-gray-500 italic">No suggestions available at the moment.</p>
@@ -237,6 +254,56 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Contact Info Modal */}
+      {showContactModal && (
+          <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-2xl">
+                  <div className="flex justify-between items-start mb-6">
+                      <h2 className="text-xl font-semibold">{profile?.firstName}'s Contact Info</h2>
+                      <button onClick={() => setShowContactModal(false)} className="text-gray-400 hover:text-black">
+                          <X className="w-6 h-6" />
+                      </button>
+                  </div>
+                  <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                          <Mail className="w-5 h-5 text-gray-400" />
+                          <div>
+                              <p className="text-sm font-semibold">Email</p>
+                              <a href={`mailto:${profile?.contactInfo?.email || user?.email}`} className="text-sm text-[#0a66c2] hover:underline">
+                                  {profile?.contactInfo?.email || user?.email}
+                              </a>
+                          </div>
+                      </div>
+                      {profile?.contactInfo?.phone && (
+                          <div className="flex items-center gap-3">
+                             <Phone className="w-5 h-5 text-gray-400" />
+                             <div>
+                                 <p className="text-sm font-semibold">Phone</p>
+                                 <p className="text-sm text-gray-600">{profile.contactInfo.phone}</p>
+                             </div>
+                          </div>
+                      )}
+                      {profile?.contactInfo?.website && (
+                          <div className="flex items-center gap-3">
+                             <Globe className="w-5 h-5 text-gray-400" />
+                             <div>
+                                 <p className="text-sm font-semibold">Website</p>
+                                 <a href={profile.contactInfo.website} target="_blank" rel="noopener noreferrer" className="text-sm text-[#0a66c2] hover:underline">
+                                     {profile.contactInfo.website}
+                                 </a>
+                             </div>
+                          </div>
+                      )}
+                      <div className="flex gap-4 mt-6 pt-6 border-t border-gray-100 justify-center">
+                          {profile?.contactInfo?.linkedin && <a href={profile.contactInfo.linkedin} target="_blank" rel="noopener noreferrer"><Linkedin className="w-5 h-5 text-gray-400 hover:text-[#0a66c2]" /></a>}
+                          {profile?.contactInfo?.github && <a href={profile.contactInfo.github} target="_blank" rel="noopener noreferrer"><Github className="w-5 h-5 text-gray-400 hover:text-black" /></a>}
+                          {profile?.contactInfo?.twitter && <a href={profile.contactInfo.twitter} target="_blank" rel="noopener noreferrer"><Twitter className="w-5 h-5 text-gray-400 hover:text-[#1da1f2]" /></a>}
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 }

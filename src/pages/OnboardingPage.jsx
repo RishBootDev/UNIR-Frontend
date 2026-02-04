@@ -202,7 +202,11 @@ export default function OnboardingPage() {
                 break;
             case 4:
                 for (const edu of educations.filter(e => e.institution && e.degree)) {
-                    await profileService.addEducation(edu);
+                    await profileService.addEducation({
+                        ...edu,
+                        startYear: edu.startYear ? parseInt(edu.startYear) : null,
+                        endYear: edu.endYear ? parseInt(edu.endYear) : null
+                    });
                 }
                 break;
             case 5:
@@ -335,6 +339,10 @@ export default function OnboardingPage() {
               <div className="grid grid-cols-2 gap-4 mt-3">
                 <Input label="Degree" value={edu.degree} onChange={v => { const n = [...educations]; n[idx].degree = v; setEducations(n); }} />
                 <Input label="Field of Study" value={edu.fieldOfStudy} onChange={v => { const n = [...educations]; n[idx].fieldOfStudy = v; setEducations(n); }} />
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <Input label="Start Year" placeholder="2018" value={edu.startYear} onChange={v => { const n = [...educations]; n[idx].startYear = v; setEducations(n); }} />
+                <Input label="End Year" placeholder="2022" value={edu.endYear} onChange={v => { const n = [...educations]; n[idx].endYear = v; setEducations(n); }} />
               </div>
            </div>
         ))}
