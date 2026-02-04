@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { companyService } from "@/services/api";
+import { companyService, experienceService } from "@/services/api";
 import { Navbar } from "@/components/Navbar/Navbar";
 import { Spinner } from "@/components/ui/Spinner";
-import { Building2, Globe, MapPin, Briefcase, Plus, Check } from "lucide-react";
+import { Building2, Globe, MapPin, Briefcase, Plus, Check, User } from "lucide-react";
 import { useAuth } from "@/context/useAuth";
 
 export default function CompanyPage() {
@@ -14,6 +14,28 @@ export default function CompanyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState("Home");
+  const [people, setPeople] = useState([]);
+  const [loadingPeople, setLoadingPeople] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "People" && company && people.length === 0) {
+        loadPeople();
+    }
+  }, [activeTab, company]);
+
+  const loadPeople = async () => {
+    try {
+        setLoadingPeople(true);
+        const data = await experienceService.getProfilesByCompany(company.name);
+        setPeople(data || []);
+    } catch (err) {
+        console.error("Failed to load people", err);
+    } finally {
+        setLoadingPeople(false);
+    }
+  };
 
   useEffect(() => {
     if (name) {
@@ -129,36 +151,82 @@ export default function CompanyPage() {
 
            {/* Tabs */}
            <div className="flex gap-8 mt-8 border-b border-gray-200">
-               <button className="py-3 text-sm font-semibold text-green-600 border-b-2 border-green-600">Home</button>
-               <button className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800">About</button>
-               <button className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800">Jobs</button>
-               <button className="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800">People</button>
+               {["Home", "About", "Jobs", "People"].map(tab => (
+                   <button 
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`py-3 text-sm font-semibold transition-colors ${activeTab === tab ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-800'}`}
+                   >
+                       {tab}
+                   </button>
+               ))}
            </div>
         </div>
 
         {/* Example Grid for content */}
-        <div className="flex gap-6 mt-6">
-            <div className="flex-1">
-                <div className="unir-card p-6 mb-4">
-                    <h2 className="text-xl font-bold mb-4">About</h2>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                        {company.name} is a company in the {company.industry || "Non-specified"} industry. 
-                        We are committed to excellence and innovation.
-                    </p>
+        <div className="mt-6">
+            {activeTab === "Home" && (
+                <div className="flex gap-6">
+                    <div className="flex-1">
+                        <div className="unir-card p-6 mb-4">
+                            <h2 className="text-xl font-bold mb-4">About</h2>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                                {company.name} is a company in the {company.industry || "Non-specified"} industry. 
+                                We are committed to excellence and innovation.
+                            </p>
+                        </div>
+                        <div className="unir-card p-6">
+                            <h2 className="text-xl font-bold mb-4">Recent Updates</h2>
+                            <p className="text-gray-500 italic text-sm">No recent updates posted.</p>
+                        </div>
+                    </div>
+                    
+                    <div className="w-[300px]">
+                        <div className="unir-card p-4">
+                            <h3 className="font-semibold mb-2">Similar Companies</h3>
+                            {/* Placeholder */}
+                            <p className="text-xs text-gray-500">Suggestions unavailable.</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="unir-card p-6">
-                    <h2 className="text-xl font-bold mb-4">Recent Updates</h2>
-                    <p className="text-gray-500 italic text-sm">No recent updates posted.</p>
+            )}
+
+            {activeTab === "People" && (
+                <div className="unir-card p-6 min-h-[400px]">
+                    <h2 className="text-xl font-bold mb-6">People</h2>
+                    {loadingPeople ? (
+                        <div className="flex justify-center py-10"><Spinner /></div>
+                    ) : people.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {people.map((person, i) => (
+                                <div 
+                                    key={person.userId || i} 
+                                    className="border border-slate-200 rounded-xl p-4 flex flex-col items-center text-center hover:shadow-md hover:border-green-200 transition-all cursor-pointer bg-white group"
+                                    onClick={() => navigate(`/profile/view/${person.userId}`)}
+                                >
+                                    <div className="w-20 h-20 rounded-full overflow-hidden mb-3 border-2 border-slate-100 group-hover:border-green-100 transition-colors">
+                                        <img 
+                                            src={person.profilePictureUrl || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"} 
+                                            className="w-full h-full object-cover" 
+                                            alt={person.firstName} 
+                                        />
+                                    </div>
+                                    <h3 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors">{person.firstName} {person.lastName}</h3>
+                                    <p className="text-xs text-gray-500 line-clamp-2 mt-1">{person.headline || "Member"}</p>
+                                    
+                                    <button className="mt-3 text-xs font-semibold text-green-600 border border-green-600 rounded-full px-4 py-1 hover:bg-green-50 transition w-full">Connect</button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                         <div className="text-center py-10 text-gray-500">
+                             <User className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                             <p>No people found linked to this company yet.</p>
+                         </div>
+                    )}
                 </div>
-            </div>
-            
-            <div className="w-[300px]">
-                <div className="unir-card p-4">
-                    <h3 className="font-semibold mb-2">Similar Companies</h3>
-                    {/* Placeholder */}
-                    <p className="text-xs text-gray-500">Suggestions unavailable.</p>
-                </div>
-            </div>
+            )}
+
         </div>
 
       </div>

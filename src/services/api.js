@@ -190,3 +190,7 @@ export const educationService = {
   getProfilesByInstitute: (institute) => apiFetch(`/education/getProfiles/${encodeURIComponent(institute)}`),
 };
 
+export const experienceService = {
+  getProfilesByCompany: (company) => apiFetch(`/company/getProfiles/${encodeURIComponent(company)}`),
+};
+
