@@ -13,6 +13,7 @@ export default function NetworkPage() {
     setConnectedIds((prev) => [...prev, name]);
   };
 
+
   return (
     <div className="min-h-screen bg-[#f4f2ee]">
       <Navbar />

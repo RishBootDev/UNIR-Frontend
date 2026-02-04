@@ -253,6 +253,7 @@ export function Navbar() {
                 <div className="p-2">
                   <p className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account</p>
                   {[
+                    { to: "/premium", label: "Try Premium for ₹0" },
                     { to: "/settings", label: "Settings & Privacy" },
                     { to: "/help", label: "Help & Support" },
                     { to: "/language", label: "Language Preferences" }
@@ -260,7 +261,7 @@ export function Navbar() {
                     <Link
                       key={link.to}
                       to={link.to}
-                      className="block px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-xl transition-colors font-medium"
+                      className={`block px-3 py-2.5 text-sm rounded-xl transition-colors font-medium ${link.to === '/premium' ? 'text-amber-600 bg-amber-50 hover:bg-amber-100' : 'text-slate-700 hover:bg-slate-50'}`}
                       onClick={closeMenus}
                     >
                       {link.label}

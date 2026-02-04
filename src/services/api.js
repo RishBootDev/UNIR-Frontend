@@ -194,3 +194,13 @@ export const experienceService = {
   getProfilesByCompany: (company) => apiFetch(`/company/getProfiles/${encodeURIComponent(company)}`),
 };
 
+export const paymentService = {
+  createOrder: (amount, currency = "INR") => apiFetch("/payments/create-order", { method: "POST", body: { amount, currency } }),
+  verifyPayment: (data) => apiFetch("/payments/verify", { method: "POST", body: data }),
+};
+
+export const subscriptionService = {
+  getStatus: (userId) => apiFetch(`/subscriptions/status/${userId}`),
+  cancelSubscription: (userId) => apiFetch(`/subscriptions/cancel/${userId}`, { method: "POST" }),
+};
+

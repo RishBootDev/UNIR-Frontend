@@ -30,7 +30,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-slate-200;
     box-sizing: border-box;
   }
   body {
