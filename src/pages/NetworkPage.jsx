@@ -140,8 +140,8 @@ export default function NetworkPage() {
                                                 alt={person.firstName}
                                             />
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="font-bold text-gray-900 truncate hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${person.userId}`)}>
-                                                    {person.firstName} {person.lastName}
+                                                <h3 className="font-bold text-gray-900 truncate hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${person?.userId || person?.id}`)}>
+                                                    {(person?.firstName || person?.lastName) ? `${person.firstName || ""} ${person.lastName || ""}` : (person?.name || "User")}
                                                 </h3>
                                                 <p className="text-sm text-gray-500 truncate">{person.headline || "Member"}</p>
                                                 <p className="text-xs text-gray-400 mt-1">Connected just now</p>
@@ -180,8 +180,8 @@ export default function NetworkPage() {
                                                     alt={req.firstName}
                                                 />
                                                 <div>
-                                                    <h3 className="font-bold text-gray-900 text-lg hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${req.userId}`)}>
-                                                        {req.firstName} {req.lastName}
+                                                    <h3 className="font-bold text-gray-900 text-lg hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${req?.userId || req?.id}`)}>
+                                                        {(req?.firstName || req?.lastName) ? `${req.firstName || ""} ${req.lastName || ""}` : (req?.name || "User")}
                                                     </h3>
                                                     <p className="text-sm text-gray-500">{req.headline || "Member"}</p>
                                                     <p className="text-xs text-gray-400 mt-1">Sent you a request</p>
@@ -245,8 +245,8 @@ export default function NetworkPage() {
                                                     alt={person.firstName}
                                                 />
                                             </div>
-                                            <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors cursor-pointer" onClick={() => navigate(`/profile/view/${person.userId}`)}>
-                                                {person.firstName} {person.lastName}
+                                            <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors cursor-pointer" onClick={() => navigate(`/profile/view/${person?.userId || person?.id}`)}>
+                                                {(person?.firstName || person?.lastName) ? `${person.firstName || ""} ${person.lastName || ""}` : (person?.name || "User")}
                                             </h3>
                                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{person.headline || "Member"}</p>
                                             

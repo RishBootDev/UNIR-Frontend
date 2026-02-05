@@ -50,10 +50,17 @@ async function apiFetch(endpoint, options = {}) {
   console.log(`[API] Fetching ${url} with method ${method}`);
   if (_userId) console.log(`[API] X-User-Id: ${_userId}`);
   
-  const response = await fetch(url, { method, headers: _nextHeaders, body: _requestBody, signal });
+  let response;
+  try {
+    response = await fetch(url, { method, headers: _nextHeaders, body: _requestBody, signal });
+  } catch (err) {
+    console.error(`[API] Network error fetching ${url}:`, err);
+    throw err;
+  }
 
   if (!response.ok) {
      const errorText = await response.text();
+     console.error(`[API] Request failed: ${method} ${url} -> Status ${response.status}`, errorText);
      throw new Error(errorText || `Request failed with status ${response.status}`);
   }
 

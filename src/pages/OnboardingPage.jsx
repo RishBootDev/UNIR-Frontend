@@ -187,17 +187,7 @@ export default function OnboardingPage() {
         topKeywords: []
       };
       
-      // If we already have a profile in context/auth but local state didn't catch it
-      if (profile && profile.userId === user?.id) {
-          setIsProfileCreated(true);
-          // If silent is false (initial Step 1), we might still want to update it
-          // But usually this means we should just update.
-          if (!silent) {
-               await profileService.createProfile(payload); // Acts as update
-          }
-          return true;
-      }
-
+      // Use createProfile for both create and update
       await profileService.createProfile(payload);
       setIsProfileCreated(true);
       return true;
