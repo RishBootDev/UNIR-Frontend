@@ -169,10 +169,10 @@ export const networkService = {
   getIncomingRequests: () => apiFetch("/connections/requests"),
   sendConnectionRequest: (userId) =>
     apiFetch(`/connections/request/${userId}`, { method: "POST" }),
-  acceptRequest: (senderId) =>
-    apiFetch(`/connections/accept/${senderId}`, { method: "POST" }),
-  rejectRequest: (senderId) =>
-    apiFetch(`/connections/reject/${senderId}`, { method: "POST" }),
+  acceptRequest: (userId) =>
+    apiFetch(`/connections/accept/${userId}`, { method: "POST" }),
+  rejectRequest: (userId) =>
+    apiFetch(`/connections/reject/${userId}`, { method: "POST" }),
 };
 
 export const jobsService = {
@@ -192,7 +192,7 @@ export const messagesService = {
 };
 
 export const notificationsService = {
-  getNotifications: (options) => apiFetch("/notifications", options),
+  getNotifications: (userId) => apiFetch(`/notifications/${userId}`),
   markAsRead: (notificationId) =>
     apiFetch(`/notifications/${notificationId}/read`, { method: "POST" }),
 };

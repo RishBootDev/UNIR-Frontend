@@ -24,10 +24,56 @@ export default function NetworkPage() {
     try {
       if (activeTab === "network") {
         const data = await networkService.getMyConnections();
-        setConnections(data || []);
+        
+        // Fetch profiles to get images
+        if (data && data.length > 0) {
+             const enrichedData = await Promise.all(
+                 data.map(async (conn) => {
+                     try {
+                         const profile = await profileService.getProfileById(conn.userId);
+                         return { 
+                             ...conn, 
+                             profilePictureUrl: profile.profilePictureUrl,
+                             headline: profile.headline || conn.headline,
+                             firstName: profile.firstName || conn.name?.split(" ")[0],
+                             lastName: profile.lastName || conn.name?.split(" ")[1]
+                         };
+                     } catch (error) {
+                         console.warn("Failed to fetch profile for connection:", conn.userId);
+                         return conn;
+                     }
+                 })
+             );
+             setConnections(enrichedData);
+        } else {
+            setConnections([]);
+        }
       } else if (activeTab === "invitations") {
         const data = await networkService.getIncomingRequests();
-        setRequests(data || []);
+        
+        // Fetch profiles for requests too
+        if (data && data.length > 0) {
+            const enrichedRequests = await Promise.all(
+                data.map(async (req) => {
+                    try {
+                        const profile = await profileService.getProfileById(req.userId);
+                         return { 
+                             ...req, 
+                             profilePictureUrl: profile.profilePictureUrl,
+                             headline: profile.headline || req.headline,
+                             firstName: profile.firstName || req.name?.split(" ")[0],
+                             lastName: profile.lastName || req.name?.split(" ")[1]
+                         };
+                    } catch (error) {
+                        console.warn("Failed to fetch profile for request:", req.userId);
+                        return req;
+                    }
+                })
+            );
+            setRequests(enrichedRequests);
+        } else {
+            setRequests([]);
+        }
       }
     } catch (err) {
       console.error("Failed to load network data", err);
@@ -46,6 +92,9 @@ export default function NetworkPage() {
       setSearchResults(results || []);
     } catch (err) {
       console.error("Search failed", err);
+      // Optional: set an error state to show in UI
+      setSearchResults([]); 
+      // You could add a specialized error state here if desired, e.g. setError("Search failed")
     } finally {
         setLoading(false);
     }
