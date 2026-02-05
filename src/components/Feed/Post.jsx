@@ -1,15 +1,28 @@
 import { memo, useMemo, useState } from "react";
+import { useAuth } from "@/context/useAuth";
 import { ThumbsUp, MessageCircle, Repeat2, Send, MoreHorizontal, Globe } from "lucide-react";
+import { postsService } from "@/services/api";
 
 export const Post = memo(function Post({ post }) {
+  const { user, profile } = useAuth();
   const author = post?.author ?? {};
   const [liked, setLiked] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [localComments, setLocalComments] = useState(() => post?.commentItems ?? []);
 
-  const handleLike = () => {
-    setLiked(!liked);
+  const handleLike = async () => {
+    const nextLiked = !liked;
+    setLiked(nextLiked); // Optimistic
+    try {
+        if (nextLiked) {
+            await postsService.likePost(post.id);
+        } else {
+            await postsService.unlikePost(post.id);
+        }
+    } catch {
+        setLiked(!nextLiked); // Revert
+    }
   };
 
   const likeCount = (post?.likes ?? 0) + (liked ? 1 : 0);
@@ -24,17 +37,33 @@ export const Post = memo(function Post({ post }) {
     return Array.from(map.values());
   }, [post, localComments]);
 
-  const submitComment = () => {
+  const submitComment = async () => {
     const text = commentText.trim();
     if (!text) return;
+    
+    // Optimistic comment
+    const currentUser = profile || user;
     const newComment = {
       id: `local-${Date.now()}`,
-      author: { name: "You", avatar: "" },
+      author: { 
+        name: currentUser?.name || (currentUser?.firstName ? `${currentUser.firstName} ${currentUser.lastName}` : "You"), 
+        avatar: currentUser?.profilePictureUrl || currentUser?.avatar || "" 
+      },
       content: text,
-      timeAgo: "Now",
+      timeAgo: "Just now",
     };
+    
     setLocalComments((prev) => [...prev, newComment]);
     setCommentText("");
+
+    try {
+        await postsService.commentOnPost(post.id, text);
+        // We could fetch comments again to replace the optimistic one, but keeping it simple for now
+    } catch (err) {
+        console.error("Failed to post comment", err);
+        // Optionally remove the optimistic comment
+        setLocalComments(prev => prev.filter(c => c.id !== newComment.id));
+    }
   };
 
   return (

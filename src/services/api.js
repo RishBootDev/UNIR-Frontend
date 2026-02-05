@@ -104,16 +104,17 @@ export const authService = {
 };
 
 export const postsService = {
-  getFeed: (options) => apiFetch("/post", options),
-  createPost: (content) =>
-    apiFetch("/post", {
+  getFeed: (options) => apiFetch("/posts/feed", options),
+  getUserPosts: (userId, options) => apiFetch(`/posts/user/${userId}`, options),
+  createPost: (data) =>
+    apiFetch("/posts", {
       method: "POST",
-      body: { content },
+      body: typeof data === "string" ? { content: data } : data,
     }),
-  likePost: (postId) => apiFetch(`/likes/${postId}`, { method: "POST" }),
-  unlikePost: (postId) => apiFetch(`/likes/${postId}`, { method: "DELETE" }),
+  likePost: (postId) => apiFetch(`/posts/likes/${postId}`, { method: "POST" }),
+  unlikePost: (postId) => apiFetch(`/posts/likes/${postId}`, { method: "DELETE" }),
   commentOnPost: (postId, content) =>
-    apiFetch(`/post/${postId}/comments`, {
+    apiFetch(`/posts/posts/${postId}/comments`, {
       method: "POST",
       body: { content },
     }),
@@ -157,11 +158,14 @@ export const institutionService = {
 };
 
 export const networkService = {
-  getSuggestions: (options) => apiFetch("/network/suggestions", options),
+  getMyConnections: () => apiFetch("/connections/first-degree"),
+  getIncomingRequests: () => apiFetch("/connections/requests"),
   sendConnectionRequest: (userId) =>
     apiFetch(`/connections/request/${userId}`, { method: "POST" }),
-  acceptRequest: (requestId) =>
-    apiFetch(`/connections/accept/${requestId}`, { method: "POST" }),
+  acceptRequest: (senderId) =>
+    apiFetch(`/connections/accept/${senderId}`, { method: "POST" }),
+  rejectRequest: (senderId) =>
+    apiFetch(`/connections/reject/${senderId}`, { method: "POST" }),
 };
 
 export const jobsService = {

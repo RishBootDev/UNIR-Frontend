@@ -6,13 +6,27 @@ export function PostComposer({ onPost }) {
   const { user, profile } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [postContent, setPostContent] = useState("");
+  const [visibility, setVisibility] = useState("PUBLIC"); // PUBLIC, CONNECTIONS, PRIVATE
+  const [postType, setPostType] = useState("NORMAL"); // NORMAL, JOB, ARTICLE
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [showMediaInput, setShowMediaInput] = useState(false);
 
   const handlePost = () => {
     if (postContent.trim()) {
-      onPost?.(postContent);
+      onPost?.(postContent, profile || user, { type: postType, visibility, mediaUrl });
       setPostContent("");
+      setMediaUrl("");
+      setShowMediaInput(false);
       setIsModalOpen(false);
+      setPostType("NORMAL");
+      setVisibility("PUBLIC");
     }
+  };
+
+  const toggleVisibility = () => {
+    const modes = ["PUBLIC", "CONNECTIONS", "PRIVATE"];
+    const nextIndex = (modes.indexOf(visibility) + 1) % modes.length;
+    setVisibility(modes[nextIndex]);
   };
 
   return (
@@ -38,13 +52,13 @@ export function PostComposer({ onPost }) {
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-50">
           <div className="flex gap-1 xl:gap-2">
             {[
-                { icon: Image, label: "Media", color: "text-blue-500", bg: "bg-blue-50" },
-                { icon: Calendar, label: "Event", color: "text-amber-500", bg: "bg-amber-50" },
-                { icon: FileText, label: "Article", color: "text-indigo-500", bg: "bg-indigo-50" }
+                { icon: Image, label: "Media", color: "text-blue-500", bg: "bg-blue-50", onClick: () => { setShowMediaInput(!showMediaInput); setIsModalOpen(true); } },
+                { icon: Calendar, label: "Event", color: "text-amber-500", bg: "bg-amber-50", onClick: () => setIsModalOpen(true) },
+                { icon: FileText, label: "Article", color: "text-indigo-500", bg: "bg-indigo-50", onClick: () => { setPostType("ARTICLE"); setIsModalOpen(true); } }
             ].map(item => (
                 <button
                     key={item.label}
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={item.onClick}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-all group/btn"
                 >
                     <div className={`p-1.5 ${item.bg} rounded-lg group-hover/btn:scale-110 transition-transform`}>
@@ -78,8 +92,11 @@ export function PostComposer({ onPost }) {
                   <p className="font-extrabold text-slate-900 tracking-tight leading-none mb-1">
                     {profile ? `${profile.firstName} ${profile.lastName}` : user?.name}
                   </p>
-                  <button className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 uppercase tracking-widest hover:text-blue-600 transition-colors bg-slate-50 px-2 py-1 rounded-lg">
-                    <span>Public</span>
+                  <button 
+                    onClick={toggleVisibility}
+                    className="flex items-center gap-1.5 text-[11px] font-black text-slate-400 uppercase tracking-widest hover:text-blue-600 transition-colors bg-slate-50 px-2 py-1 rounded-lg"
+                  >
+                    <span>{visibility}</span>
                     <Video className="w-3 h-3 rotate-180" />
                   </button>
                 </div>
@@ -99,12 +116,30 @@ export function PostComposer({ onPost }) {
                 className="w-full min-h-[240px] resize-none text-xl font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none"
                 autoFocus
               />
+              {showMediaInput && (
+                <input 
+                    type="text" 
+                    placeholder="Paste Image URL here (https://...)" 
+                    className="w-full mt-2 p-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500 transition-colors"
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                />
+              )}
             </div>
             <div className="flex items-center justify-between p-6 bg-slate-50/50 border-t border-slate-100">
               <div className="flex items-center gap-1.5">
-                {[Image, Video, FileText, Calendar].map((Icon, idx) => (
-                    <button key={idx} className="p-3 text-slate-400 hover:text-blue-600 hover:bg-white hover:shadow-md rounded-2xl transition-all active:scale-90">
-                        <Icon className="w-5 h-5" />
+                {[
+                    { icon: Image, onClick: () => setShowMediaInput(!showMediaInput), active: showMediaInput },
+                    { icon: Video, onClick: () => {}, active: false },
+                    { icon: FileText, onClick: () => setPostType(postType === "ARTICLE" ? "NORMAL" : "ARTICLE"), active: postType === "ARTICLE" },
+                    { icon: Calendar, onClick: () => {}, active: false }
+                ].map((item, idx) => (
+                    <button 
+                        key={idx} 
+                        onClick={item.onClick}
+                        className={`p-3 rounded-2xl transition-all active:scale-90 ${item.active ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-blue-600 hover:bg-white hover:shadow-md'}`}
+                    >
+                        <item.icon className="w-5 h-5" />
                     </button>
                 ))}
               </div>

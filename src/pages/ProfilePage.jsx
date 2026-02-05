@@ -3,7 +3,8 @@ import { useAuth } from "@/context/useAuth";
 import { Camera, Pencil, Briefcase, GraduationCap, Award, ExternalLink, Globe, Mail, Phone, Link as LinkIcon, Twitter, Linkedin, Github, X, Plus } from "lucide-react";
 import { SubscriptionCard } from "@/components/Subscription/SubscriptionCard";
 import { useState, useEffect } from "react";
-import { profileService, companyService, institutionService } from "@/services/api";
+import { profileService, companyService, institutionService, postsService } from "@/services/api";
+import { Post } from "@/components/Feed/Post";
 
 // --- REUSABLE COMPONENTS ---
 
@@ -123,6 +124,15 @@ export default function ProfilePage() {
   const [aboutForm, setAboutForm] = useState("");
   const [keywordsForm, setKeywordsForm] = useState("");
   const [contactForm, setContactForm] = useState({ phone: "", website: "", linkedin: "", github: "", twitter: "" });
+  const [userPosts, setUserPosts] = useState([]);
+
+  useEffect(() => {
+    if (profile?.userId) {
+        postsService.getUserPosts(profile.userId).then(data => {
+            setUserPosts(data.content || []);
+        }).catch(err => console.error("Failed to load user posts", err));
+    }
+  }, [profile?.userId]);
 
   // Force fetch profile if missing on mount
   useEffect(() => {

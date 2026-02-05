@@ -23,13 +23,35 @@ export function useFeed() {
 
     try {
       const res = await postsService.getFeed({ signal: controller.signal });
-      const nextPosts = normalizeFeedResponse(res);
-      setPosts(nextPosts);
+      const rawPosts = normalizeFeedResponse(res);
+      
+      // Backend now provides author details
+      const mappedPosts = rawPosts.map(post => ({
+          ...post,
+          image: post.mediaUrl || post.image || null, // Fix: Map backend mediaUrl to frontend image prop
+          // Fallback if backend author is null (though it shouldn't be)
+          author: post.author || {
+            name: "Unknown User",
+            headline: "Member",
+            avatar: "",
+          },
+          likes: post.likeCount || 0,
+          comments: post.commentCount || 0,
+          reposts: 0, 
+          timeAgo: new Date(post.createdAt + (post.createdAt.endsWith('Z') ? '' : 'Z')).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      }));
+
+      setPosts(mappedPosts);
     } catch (e) {
-      setError(e);
-      setPosts([]);
+      if (e.name !== 'AbortError') {
+        console.error("Feed fetch error:", e);
+        setError(e);
+        setPosts([]);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -39,16 +61,23 @@ export function useFeed() {
   }, [refetch]);
 
   const addPost = useCallback(
-    async (content) => {
+    async (content, author = null, options = {}) => {
+      const { type = "NORMAL", visibility = "PUBLIC", mediaUrl: rawMediaUrl = null } = options;
+      
+      const mediaUrl = rawMediaUrl?.trim() || null; // Fix: Ensure empty strings become null
+
       // optimistic add
       const optimistic = {
         id: `optimistic-${Date.now()}`,
         author: {
-          name: "You",
-          headline: "Member",
-          avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+          name: author?.name || (author?.firstName ? `${author.firstName} ${author.lastName}` : "You"),
+          headline: author?.headline || "Member",
+          avatar: author?.profilePictureUrl || author?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
         },
         content,
+        image: mediaUrl, // Use mapped prop for optimistic
+        type,
+        visibility,
         likes: 0,
         comments: 0,
         reposts: 0,
@@ -58,12 +87,29 @@ export function useFeed() {
       setPosts((prev) => [optimistic, ...prev]);
 
       try {
-        const created = await postsService.createPost(content);
+        const payload = {
+            content,
+            mediaUrl,
+            type, // NORMAL, JOB, ARTICLE, REPOST
+            visibility // PUBLIC, CONNECTIONS, PRIVATE
+        };
+        
+        console.log("[useFeed] Creating post:", payload);
+
+        const created = await postsService.createPost(payload);
+        
         if (created) {
-          setPosts((prev) => prev.map((p) => (p.id === optimistic.id ? created : p)));
+          setPosts((prev) => prev.map((p) => (p.id === optimistic.id ? {
+            ...created,
+            image: created.mediaUrl, // Ensure returned post is mapped
+            author: optimistic.author,
+            likes: 0,
+            comments: 0
+          } : p)));
         }
-      } catch {
-        // keep optimistic post, but could mark failed later
+      } catch (err) {
+        console.error("Failed to create post", err);
+        // Optionally show toast or revert
       }
     },
     []

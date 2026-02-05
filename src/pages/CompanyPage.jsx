@@ -213,8 +213,21 @@ export default function CompanyPage() {
                                     </div>
                                     <h3 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors">{person.firstName} {person.lastName}</h3>
                                     <p className="text-xs text-gray-500 line-clamp-2 mt-1">{person.headline || "Member"}</p>
-                                    
-                                    <button className="mt-3 text-xs font-semibold text-green-600 border border-green-600 rounded-full px-4 py-1 hover:bg-green-50 transition w-full">Connect</button>
+                                    <button 
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            try {
+                                                await import("@/services/api").then(m => m.networkService.sendConnectionRequest(person.userId));
+                                                alert("Connection request sent!");
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert("Failed to send request");
+                                            }
+                                        }}
+                                        className="mt-3 text-xs font-semibold text-green-600 border border-green-600 rounded-full px-4 py-1 hover:bg-green-50 transition w-full"
+                                    >
+                                        Connect
+                                    </button>
                                 </div>
                             ))}
                         </div>
