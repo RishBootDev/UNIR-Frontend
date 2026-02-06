@@ -125,6 +125,8 @@ export const postsService = {
       method: "POST",
       body: { content },
     }),
+  getComments: (postId) => apiFetch(`/posts/posts/${postId}/comments`),
+  deletePost: (postId) => apiFetch(`/posts/${postId}`, { method: "DELETE" }),
 };
 
 export const profileService = {

@@ -94,7 +94,7 @@ export function LeftSidebar() {
                         <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                             <span>{post.createdAt ? new Date(String(post.createdAt) + (String(post.createdAt).endsWith('Z') ? '' : 'Z')).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : "Recently"}</span>
                             <span>•</span>
-                            <span>{post.likes || 0} likes</span>
+                            <span>{post.likeCount || 0} likes</span>
                         </div>
                     </div>
                 ))
