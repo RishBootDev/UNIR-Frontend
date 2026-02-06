@@ -3,7 +3,7 @@ import { postsService } from "@/services/api";
 
 function normalizeFeedResponse(res) {
   if (!res) return [];
-  const items = res.items || res.data || res.posts || (Array.isArray(res) ? res : []);
+  const items = res.content || res.items || res.data || res.posts || (Array.isArray(res) ? res : []);
   return Array.isArray(items) ? items : [];
 }
 
