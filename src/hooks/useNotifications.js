@@ -7,17 +7,13 @@ function normalizeNotificationsResponse(res) {
   return items;
 }
 
-import { useAuth } from "@/context/useAuth";
-
 export function useNotifications() {
-  const { user } = useAuth();
   const abortRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const refetch = useCallback(async () => {
-    if (!user?.id) return;
     abortRef.current?.abort?.();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -26,7 +22,7 @@ export function useNotifications() {
     setError(null);
 
     try {
-      const res = await notificationsService.getNotifications(user.id, { signal: controller.signal });
+      const res = await notificationsService.getNotifications({ signal: controller.signal });
       setNotifications(normalizeNotificationsResponse(res));
     } catch (e) {
       setError(e);

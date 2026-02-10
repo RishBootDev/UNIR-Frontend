@@ -24,56 +24,10 @@ export default function NetworkPage() {
     try {
       if (activeTab === "network") {
         const data = await networkService.getMyConnections();
-        
-        // Fetch profiles to get images
-        if (data && data.length > 0) {
-             const enrichedData = await Promise.all(
-                 data.map(async (conn) => {
-                     try {
-                         const profile = await profileService.getProfileById(conn.userId);
-                         return { 
-                             ...conn, 
-                             profilePictureUrl: profile.profilePictureUrl,
-                             headline: profile.headline || conn.headline,
-                             firstName: profile.firstName || conn.name?.split(" ")[0],
-                             lastName: profile.lastName || conn.name?.split(" ")[1]
-                         };
-                     } catch (error) {
-                         console.warn("Failed to fetch profile for connection:", conn.userId);
-                         return conn;
-                     }
-                 })
-             );
-             setConnections(enrichedData);
-        } else {
-            setConnections([]);
-        }
+        setConnections(data || []);
       } else if (activeTab === "invitations") {
         const data = await networkService.getIncomingRequests();
-        
-        // Fetch profiles for requests too
-        if (data && data.length > 0) {
-            const enrichedRequests = await Promise.all(
-                data.map(async (req) => {
-                    try {
-                        const profile = await profileService.getProfileById(req.userId);
-                         return { 
-                             ...req, 
-                             profilePictureUrl: profile.profilePictureUrl,
-                             headline: profile.headline || req.headline,
-                             firstName: profile.firstName || req.name?.split(" ")[0],
-                             lastName: profile.lastName || req.name?.split(" ")[1]
-                         };
-                    } catch (error) {
-                        console.warn("Failed to fetch profile for request:", req.userId);
-                        return req;
-                    }
-                })
-            );
-            setRequests(enrichedRequests);
-        } else {
-            setRequests([]);
-        }
+        setRequests(data || []);
       }
     } catch (err) {
       console.error("Failed to load network data", err);
@@ -92,9 +46,6 @@ export default function NetworkPage() {
       setSearchResults(results || []);
     } catch (err) {
       console.error("Search failed", err);
-      // Optional: set an error state to show in UI
-      setSearchResults([]); 
-      // You could add a specialized error state here if desired, e.g. setError("Search failed")
     } finally {
         setLoading(false);
     }
@@ -189,8 +140,8 @@ export default function NetworkPage() {
                                                 alt={person.firstName}
                                             />
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="font-bold text-gray-900 truncate hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${person?.userId || person?.id}`)}>
-                                                    {(person?.firstName || person?.lastName) ? `${person.firstName || ""} ${person.lastName || ""}` : (person?.name || "User")}
+                                                <h3 className="font-bold text-gray-900 truncate hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${person.userId}`)}>
+                                                    {person.firstName} {person.lastName}
                                                 </h3>
                                                 <p className="text-sm text-gray-500 truncate">{person.headline || "Member"}</p>
                                                 <p className="text-xs text-gray-400 mt-1">Connected just now</p>
@@ -229,8 +180,8 @@ export default function NetworkPage() {
                                                     alt={req.firstName}
                                                 />
                                                 <div>
-                                                    <h3 className="font-bold text-gray-900 text-lg hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${req?.userId || req?.id}`)}>
-                                                        {(req?.firstName || req?.lastName) ? `${req.firstName || ""} ${req.lastName || ""}` : (req?.name || "User")}
+                                                    <h3 className="font-bold text-gray-900 text-lg hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${req.userId}`)}>
+                                                        {req.firstName} {req.lastName}
                                                     </h3>
                                                     <p className="text-sm text-gray-500">{req.headline || "Member"}</p>
                                                     <p className="text-xs text-gray-400 mt-1">Sent you a request</p>
@@ -294,8 +245,8 @@ export default function NetworkPage() {
                                                     alt={person.firstName}
                                                 />
                                             </div>
-                                            <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors cursor-pointer" onClick={() => navigate(`/profile/view/${person?.userId || person?.id}`)}>
-                                                {(person?.firstName || person?.lastName) ? `${person.firstName || ""} ${person.lastName || ""}` : (person?.name || "User")}
+                                            <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors cursor-pointer" onClick={() => navigate(`/profile/view/${person.userId}`)}>
+                                                {person.firstName} {person.lastName}
                                             </h3>
                                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{person.headline || "Member"}</p>
                                             

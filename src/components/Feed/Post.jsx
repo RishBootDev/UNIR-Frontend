@@ -1,6 +1,6 @@
-import { memo, useMemo, useState, useEffect } from "react";
+import { memo, useMemo, useState } from "react";
 import { useAuth } from "@/context/useAuth";
-import { ThumbsUp, MessageCircle, Repeat2, Send, MoreHorizontal, Globe, Trash2 } from "lucide-react";
+import { ThumbsUp, MessageCircle, Repeat2, Send, MoreHorizontal, Globe } from "lucide-react";
 import { postsService } from "@/services/api";
 
 export const Post = memo(function Post({ post }) {
@@ -10,28 +10,6 @@ export const Post = memo(function Post({ post }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [localComments, setLocalComments] = useState(() => post?.commentItems ?? []);
-  const [serverComments, setServerComments] = useState([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
-  const [commentsLoaded, setCommentsLoaded] = useState(false);
-
-  useEffect(() => {
-    if (showComments && !commentsLoaded && !commentsLoading) {
-      setCommentsLoading(true);
-      postsService.getComments(post.id)
-        .then(data => {
-          if (Array.isArray(data)) {
-            setServerComments(data);
-          }
-        })
-        .catch(err => {
-          console.error("Failed to fetch comments", err);
-        })
-        .finally(() => {
-          setCommentsLoading(false);
-          setCommentsLoaded(true);
-        });
-    }
-  }, [showComments, commentsLoaded, commentsLoading, post.id]);
 
   const handleLike = async () => {
     const nextLiked = !liked;
@@ -47,24 +25,17 @@ export const Post = memo(function Post({ post }) {
     }
   };
 
-  const likeCount = (post?.likes ?? post?.likeCount ?? 0) + (liked ? 1 : 0);
+  const likeCount = (post?.likes ?? 0) + (liked ? 1 : 0);
   const commentCount = (post?.comments ?? localComments.length) + Math.max(0, localComments.length - (post?.commentItems?.length ?? 0));
 
   const comments = useMemo(() => {
-    // combine server comments (if loaded) or initial post comments
-    // serverComments takes precedence if loaded
-    const base = commentsLoaded ? serverComments : (Array.isArray(post?.commentItems) ? post.commentItems : []);
+    const base = Array.isArray(post?.commentItems) ? post.commentItems : [];
     const extra = Array.isArray(localComments) ? localComments : [];
-    
     // Deduplicate by id
     const map = new Map();
-    // Add base comments first
-    for (const c of base) map.set(String(c.id || `${c.author?.name}-${c.timeAgo}-${c.content}`), c);
-    // Add local (optimistic) comments, potentially overwriting if IDs match (though usually they won't unless we sync back)
-    for (const c of extra) map.set(String(c.id || `${c.author?.name}-${c.timeAgo}-${c.content}`), c);
-    
+    for (const c of [...base, ...extra]) map.set(String(c.id || `${c.author?.name}-${c.timeAgo}-${c.content}`), c);
     return Array.from(map.values());
-  }, [post, localComments, serverComments, commentsLoaded]);
+  }, [post, localComments]);
 
   const submitComment = async () => {
     const text = commentText.trim();
@@ -95,22 +66,6 @@ export const Post = memo(function Post({ post }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this post?")) {
-        try {
-            await postsService.deletePost(post.id);
-            // In a real app, we'd notify the parent to remove it from the list
-            // For now, reload the page or rely on live updates if available
-            window.location.reload(); 
-        } catch (err) {
-            console.error("Failed to delete post", err);
-            alert("Failed to delete post");
-        }
-    }
-  };
-
-  const isAuthor = user?.id === (post?.author?.id || post?.userId);
-
   return (
     <article className="unir-card unir-card-hover group/post overflow-hidden">
       <div className="p-6">
@@ -137,26 +92,9 @@ export const Post = memo(function Post({ post }) {
               </p>
             </div>
           </div>
-          {isAuthor ? (
-            <div className="relative group/menu">
-                <button className="p-2.5 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all active:scale-90">
-                    <MoreHorizontal className="w-5 h-5" />
-                </button>
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 p-1 hidden group-hover/menu:block z-20">
-                    <button 
-                        onClick={handleDelete}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors text-left"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                        Delete Post
-                    </button>
-                </div>
-            </div>
-          ) : (
-            <button className="p-2.5 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all active:scale-90">
-                <MoreHorizontal className="w-5 h-5" />
-            </button>
-          )}
+          <button className="p-2.5 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all active:scale-90">
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
         </div>
         <div className="mt-5">
           <p className="text-base text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">{post?.content || ""}</p>
@@ -212,9 +150,6 @@ export const Post = memo(function Post({ post }) {
       {showComments && (
         <div className="px-6 pb-6 pt-2 border-t border-slate-50 bg-slate-50/30 animate-in slide-in-from-top-2 duration-300">
           <div className="mt-4 space-y-4">
-            {commentsLoading && comments.length === 0 && (
-                <div className="text-center py-4 text-slate-400 text-sm">Loading comments...</div>
-            )}
             {comments.map((c) => (
               <div key={c.id} className="flex gap-3 items-start">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-sm shrink-0">

@@ -38,7 +38,7 @@ export function LeftSidebar() {
           </Link>
           <div className="text-center mt-3">
             <Link to="/profile" className="font-bold text-slate-900 hover:text-blue-600 transition-colors block leading-tight">
-              {(profile?.firstName || profile?.lastName) ? `${profile.firstName || ""} ${profile.lastName || ""}` : (profile?.name || user?.name || "User")}
+              {profile ? `${profile.firstName} ${profile.lastName}` : user?.name}
             </Link>
             <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 px-2 leading-relaxed">
               {profile?.headline || user?.headline || "No headline yet"}
@@ -92,9 +92,9 @@ export function LeftSidebar() {
                             {post.content}
                         </p>
                         <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                            <span>{post.createdAt ? new Date(String(post.createdAt) + (String(post.createdAt).endsWith('Z') ? '' : 'Z')).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : "Recently"}</span>
+                            <span>{new Date(post.createdAt + (post.createdAt.endsWith('Z') ? '' : 'Z')).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                             <span>•</span>
-                            <span>{post.likeCount || 0} likes</span>
+                            <span>{post.likes || 0} likes</span>
                         </div>
                     </div>
                 ))

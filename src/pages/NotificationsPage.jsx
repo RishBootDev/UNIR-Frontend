@@ -66,22 +66,22 @@ export default function NotificationsPage() {
                   {!loading && notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`flex items-start gap-3 p-4 border-b border-[rgba(0,0,0,0.08)] hover:bg-[rgba(0,0,0,0.04)] cursor-pointer bg-white`}
+                      className={`flex items-start gap-3 p-4 border-b border-[rgba(0,0,0,0.08)] hover:bg-[rgba(0,0,0,0.04)] cursor-pointer ${
+                        !notification.read ? "bg-[#e7f3ff]" : ""
+                      }`}
                     >
                       <img
-                        src="/user.png" // Default avatar
-                        alt="Notification"
+                        src={notification.user.avatar}
+                        alt={notification.user.name}
                         className="w-12 h-12 rounded-full"
                       />
                       <div className="flex-1">
                         <p className="text-sm text-[rgba(0,0,0,0.9)]">
-                          {notification.message}
+                          <span className="font-semibold">{notification.user.name}</span> {notification.action}
                         </p>
-                        <p className="text-xs text-[rgba(0,0,0,0.6)] mt-1">
-                            {new Date(notification.createdAt).toLocaleString()}
-                        </p>
+                        <p className="text-xs text-[rgba(0,0,0,0.6)] mt-1">{notification.time}</p>
                       </div>
-                      {/* Read status not implemented in backend yet, so hiding dot */}
+                      {!notification.read && <span className="w-2 h-2 bg-[#0a66c2] rounded-full" />}
                     </div>
                   ))}
                 </div>

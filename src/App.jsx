@@ -4,7 +4,6 @@ import { useAuth } from "@/context/useAuth";
 import RequireAuth from "@/routes/RequireAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FullPageSpinner } from "@/components/ui/FullPageSpinner";
-import NotificationPopup from "@/components/NotificationPopup";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
@@ -28,7 +27,6 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <NotificationPopup />
       <Suspense fallback={<FullPageSpinner />}>
         <Routes>
           <Route path="/" element={isAuthenticated ? <Navigate to="/feed" replace /> : <HomePage />} />

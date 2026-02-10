@@ -50,17 +50,10 @@ async function apiFetch(endpoint, options = {}) {
   console.log(`[API] Fetching ${url} with method ${method}`);
   if (_userId) console.log(`[API] X-User-Id: ${_userId}`);
   
-  let response;
-  try {
-    response = await fetch(url, { method, headers: _nextHeaders, body: _requestBody, signal });
-  } catch (err) {
-    console.error(`[API] Network error fetching ${url}:`, err);
-    throw err;
-  }
+  const response = await fetch(url, { method, headers: _nextHeaders, body: _requestBody, signal });
 
   if (!response.ok) {
      const errorText = await response.text();
-     console.error(`[API] Request failed: ${method} ${url} -> Status ${response.status}`, errorText);
      throw new Error(errorText || `Request failed with status ${response.status}`);
   }
 
@@ -125,8 +118,6 @@ export const postsService = {
       method: "POST",
       body: { content },
     }),
-  getComments: (postId) => apiFetch(`/posts/posts/${postId}/comments`),
-  deletePost: (postId) => apiFetch(`/posts/${postId}`, { method: "DELETE" }),
 };
 
 export const profileService = {
@@ -171,10 +162,10 @@ export const networkService = {
   getIncomingRequests: () => apiFetch("/connections/requests"),
   sendConnectionRequest: (userId) =>
     apiFetch(`/connections/request/${userId}`, { method: "POST" }),
-  acceptRequest: (userId) =>
-    apiFetch(`/connections/accept/${userId}`, { method: "POST" }),
-  rejectRequest: (userId) =>
-    apiFetch(`/connections/reject/${userId}`, { method: "POST" }),
+  acceptRequest: (senderId) =>
+    apiFetch(`/connections/accept/${senderId}`, { method: "POST" }),
+  rejectRequest: (senderId) =>
+    apiFetch(`/connections/reject/${senderId}`, { method: "POST" }),
 };
 
 export const jobsService = {
@@ -194,7 +185,7 @@ export const messagesService = {
 };
 
 export const notificationsService = {
-  getNotifications: (userId) => apiFetch(`/notifications/${userId}`),
+  getNotifications: (options) => apiFetch("/notifications", options),
   markAsRead: (notificationId) =>
     apiFetch(`/notifications/${notificationId}/read`, { method: "POST" }),
 };

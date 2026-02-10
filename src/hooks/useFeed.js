@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { postsService } from "@/services/api";
 
 function normalizeFeedResponse(res) {
-  if (!res) return [];
-  const items = res.content || res.items || res.data || res.posts || (Array.isArray(res) ? res : []);
-  return Array.isArray(items) ? items : [];
+  const items = res?.items ?? res?.data ?? res?.posts ?? res ?? [];
+  if (!Array.isArray(items)) return [];
+  return items;
 }
 
 export function useFeed() {
@@ -26,50 +26,20 @@ export function useFeed() {
       const rawPosts = normalizeFeedResponse(res);
       
       // Backend now provides author details
-      const mappedPosts = rawPosts.map(post => {
-          // Robust date parsing
-          let timeAgo = "Recently";
-          try {
-              if (post.createdAt) {
-                  const dateStr = String(post.createdAt);
-                  const normalizedDate = dateStr.endsWith('Z') ? dateStr : `${dateStr}Z`;
-                  const date = new Date(normalizedDate);
-                  if (!isNaN(date.getTime())) {
-                      timeAgo = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                  }
-              }
-          } catch (e) {
-              console.warn("[useFeed] Failed to parse post date:", post.createdAt, e);
-          }
-
-          return {
-              ...post,
-              image: post.mediaUrl || post.image || null,
-              author: post.author || {
-                name: post.authorName || "Unknown User",
-                headline: post.authorHeadline || "Member",
-                avatar: post.authorAvatar || "",
-              },
-              likes: post.likeCount || 0,
-              comments: post.commentCount || 0,
-              reposts: 0, 
-              timeAgo,
-              commentItems: (post.commentItems || []).map(comment => {
-                  let cTime = "Recently";
-                  try {
-                      if (comment.createdAt) {
-                          const cDateStr = String(comment.createdAt);
-                          const cNormDate = cDateStr.endsWith('Z') ? cDateStr : `${cDateStr}Z`;
-                          const cDate = new Date(cNormDate);
-                          if (!isNaN(cDate.getTime())) {
-                              cTime = cDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                          }
-                      }
-                  } catch {}
-                  return { ...comment, timeAgo: cTime };
-              }),
-          };
-      });
+      const mappedPosts = rawPosts.map(post => ({
+          ...post,
+          image: post.mediaUrl || post.image || null, // Fix: Map backend mediaUrl to frontend image prop
+          // Fallback if backend author is null (though it shouldn't be)
+          author: post.author || {
+            name: "Unknown User",
+            headline: "Member",
+            avatar: "",
+          },
+          likes: post.likeCount || 0,
+          comments: post.commentCount || 0,
+          reposts: 0, 
+          timeAgo: new Date(post.createdAt + (post.createdAt.endsWith('Z') ? '' : 'Z')).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      }));
 
       setPosts(mappedPosts);
     } catch (e) {
