@@ -24,10 +24,65 @@ export default function NetworkPage() {
     try {
       if (activeTab === "network") {
         const data = await networkService.getMyConnections();
-        setConnections(data || []);
+        if (data && data.length > 0) {
+            // Enrich with profile data
+            const enriched = await Promise.all(data.map(async (p) => {
+                try {
+                    const profile = await profileService.getProfileById(p.userId);
+                    return { 
+                        ...p, 
+                        ...profile, 
+                        // Prioritize profile data but keep fallback if needed
+                        firstName: profile.firstName,
+                        lastName: profile.lastName, 
+                        headline: profile.headline || "Member",
+                        profilePictureUrl: profile.profilePictureUrl
+                    };
+                } catch (e) {
+                    console.error(`Failed to enrich connection ${p.userId}`, e);
+                    // Attempt to split name if profile fetch fails, or just return p
+                    const names = (p.name || "").split(" ");
+                    return { 
+                        ...p, 
+                        firstName: names[0] || "Unknown", 
+                        lastName: names.slice(1).join(" ") || "",
+                        headline: "Member" 
+                    };
+                }
+            }));
+            setConnections(enriched);
+        } else {
+            setConnections([]);
+        }
       } else if (activeTab === "invitations") {
         const data = await networkService.getIncomingRequests();
-        setRequests(data || []);
+        if (data && data.length > 0) {
+           const enriched = await Promise.all(data.map(async (p) => {
+                try {
+                    const profile = await profileService.getProfileById(p.userId);
+                    return { 
+                        ...p, 
+                        ...profile,
+                        firstName: profile.firstName,
+                        lastName: profile.lastName,
+                        headline: profile.headline || "Member",
+                        profilePictureUrl: profile.profilePictureUrl
+                    };
+                } catch (e) {
+                    console.error(`Failed to enrich request ${p.userId}`, e);
+                    const names = (p.name || "").split(" ");
+                    return { 
+                        ...p, 
+                        firstName: names[0] || "Unknown", 
+                        lastName: names.slice(1).join(" ") || "",
+                        headline: "Member" 
+                    };
+                }
+            }));
+            setRequests(enriched);
+        } else {
+             setRequests([]);
+        }
       }
     } catch (err) {
       console.error("Failed to load network data", err);

@@ -113,8 +113,9 @@ export const postsService = {
     }),
   likePost: (postId) => apiFetch(`/posts/likes/${postId}`, { method: "POST" }),
   unlikePost: (postId) => apiFetch(`/posts/likes/${postId}`, { method: "DELETE" }),
+  getComments: (postId) => apiFetch(`/posts/${postId}/comments`),
   commentOnPost: (postId, content) =>
-    apiFetch(`/posts/posts/${postId}/comments`, {
+    apiFetch(`/posts/${postId}/comments`, {
       method: "POST",
       body: { content },
     }),
@@ -160,6 +161,7 @@ export const institutionService = {
 export const networkService = {
   getMyConnections: () => apiFetch("/connections/first-degree"),
   getIncomingRequests: () => apiFetch("/connections/requests"),
+  getSecondDegreeConnections: () => apiFetch("/connections/second-degree"),
   sendConnectionRequest: (userId) =>
     apiFetch(`/connections/request/${userId}`, { method: "POST" }),
   acceptRequest: (senderId) =>
@@ -185,7 +187,11 @@ export const messagesService = {
 };
 
 export const notificationsService = {
-  getNotifications: (options) => apiFetch("/notifications", options),
+  getNotifications: (options) => {
+    const userId = getUserId();
+    if (!userId) return Promise.resolve([]);
+    return apiFetch(`/notifications/${userId}`, options);
+  },
   markAsRead: (notificationId) =>
     apiFetch(`/notifications/${notificationId}/read`, { method: "POST" }),
 };

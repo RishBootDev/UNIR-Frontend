@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { postsService } from "@/services/api";
 
 function normalizeFeedResponse(res) {
-  const items = res?.items ?? res?.data ?? res?.posts ?? res ?? [];
+  const items = res?.content ?? res?.items ?? res?.data ?? res?.posts ?? res ?? [];
   if (!Array.isArray(items)) return [];
   return items;
 }

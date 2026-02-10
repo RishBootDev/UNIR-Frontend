@@ -4,12 +4,12 @@ import { useAuth } from "@/context/useAuth";
 import RequireAuth from "@/routes/RequireAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FullPageSpinner } from "@/components/ui/FullPageSpinner";
+import ExternalRedirect from "@/components/ExternalRedirect";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/RegisterPage"));
 const FeedPage = lazy(() => import("@/pages/FeedPage"));
-const JobsPage = lazy(() => import("@/pages/JobsPage"));
 const NetworkPage = lazy(() => import("@/pages/NetworkPage"));
 const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
@@ -37,7 +37,7 @@ export default function App() {
           <Route element={<RequireAuth />}>
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/network" element={<NetworkPage />} />
-            <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/jobs" element={<ExternalRedirect url="http://localhost:2025/HireSenseApplication_war_exploded/index.jsp" />} />
             <Route path="/messaging" element={<MessagingPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/profile" element={<ProfilePage />} />

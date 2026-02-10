@@ -1,7 +1,11 @@
 import { Navbar } from "@/components/Navbar/Navbar";
 import { useAuth } from "@/context/useAuth";
-import { Search, Edit, Image, Send } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Search, Edit, Image, Send, Video } from "lucide-react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import io from "socket.io-client";
+import { getUserId } from "@/auth/authStorage";
+import VideoCall from "@/components/Messaging/VideoCall";
 import { useConversations } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
 import { InlineError } from "@/components/ui/InlineError";
@@ -9,17 +13,70 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function MessagingPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const { conversations, loading: convLoading, error: convError, isEmpty: convEmpty, refetch: refetchConvs } =
     useConversations();
 
   const [selectedConversationId, setSelectedConversationId] = useState(null);
   const [messageText, setMessageText] = useState("");
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const socketRef = useRef(null);
+
+  // Setup socket connection for incoming calls
+  useEffect(() => {
+    const userId = getUserId();
+    if (!userId) return;
+
+    // Connect to video service
+    socketRef.current = io({ 
+      path: "/api/unir/video/socket.io",
+      auth: { id: String(userId), name: user?.name || "User" }, 
+    });
+
+    // Listen for incoming calls
+    socketRef.current.on("call:incoming", ({ callerId, callerName }) => {
+      console.log("Incoming call from:", callerId, callerName);
+      setIncomingCall({ callerId, callerName });
+      setShowVideoCall(true);
+    });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, [user]);
+
+  // Handle direct navigation to a user
+  useEffect(() => {
+    if (location.state?.selectedUser?.userId) {
+        setSelectedConversationId(location.state.selectedUser.userId);
+    }
+  }, [location.state]);
 
   const selectedConversation = useMemo(() => {
+    if (selectedConversationId) {
+        const existing = conversations?.find(c => c.id === selectedConversationId);
+        if (existing) return existing;
+        
+        // If not in existing conversations, checks if it was passed via state
+        if (location.state?.selectedUser?.userId === selectedConversationId) {
+            const u = location.state.selectedUser;
+            return {
+                id: u.userId,
+                name: `${u.firstName} ${u.lastName}`,
+                avatar: u.profilePictureUrl || u.avatar || "",
+                // Mock other fields
+                time: "New",
+                unread: false
+            };
+        }
+    }
+    
     if (!conversations || conversations.length === 0) return null;
-    const byId = selectedConversationId ? conversations.find((c) => c.id === selectedConversationId) : null;
-    return byId ?? conversations[0] ?? null;
-  }, [conversations, selectedConversationId]);
+    return conversations[0] ?? null;
+  }, [conversations, selectedConversationId, location.state]);
 
   const {
     messages,
@@ -123,6 +180,13 @@ export default function MessagingPage() {
                       <p className="text-xs text-[rgba(0,0,0,0.6)]">Online</p>
                     </div>
                   </div>
+                  <button 
+                    onClick={() => setShowVideoCall(true)}
+                    className="p-2 hover:bg-[rgba(0,0,0,0.04)] rounded-full text-gray-600 hover:text-blue-600 transition-colors"
+                    title="Start Video Call"
+                  >
+                    <Video className="w-5 h-5" />
+                  </button>
                 </div>
               ) : (
                 <div className="p-4 border-b border-[rgba(0,0,0,0.08)]">
@@ -186,6 +250,17 @@ export default function MessagingPage() {
           </div>
         </div>
       </div>
+      {showVideoCall && (
+        <VideoCall 
+            activeCall={incomingCall ? null : { receiverId: selectedConversation?.id }} 
+            onClose={() => {
+              setShowVideoCall(false);
+              setIncomingCall(null);
+            }}
+            isIncoming={!!incomingCall}
+            callerInfo={incomingCall}
+        />
+      )}
     </div>
   );
 }

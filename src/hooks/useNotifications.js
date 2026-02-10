@@ -4,7 +4,19 @@ import { notificationsService } from "@/services/api";
 function normalizeNotificationsResponse(res) {
   const items = res?.items ?? res?.data ?? res?.notifications ?? res ?? [];
   if (!Array.isArray(items)) return [];
-  return items;
+  
+  // Adapt backend Notification entity to Frontend expectation
+  return items.map(item => ({
+    id: item.id,
+    user: {
+      name: "System",
+      avatar: "https://cdn-icons-png.flaticon.com/512/3602/3602145.png" // Default notification icon
+    },
+    action: item.message, // Backend 'message' is the main content
+    time: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "Just now",
+    read: false, // Backend doesn't support read status yet
+    ...item // Spread original item in case structure matches in future
+  }));
 }
 
 export function useNotifications() {

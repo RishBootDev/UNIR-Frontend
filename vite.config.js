@@ -14,6 +14,7 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
+
       "/api/unir": {
         target: "http://localhost:9000",
         changeOrigin: true,

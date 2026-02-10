@@ -3,7 +3,7 @@ import io from "socket.io-client";
 import { Mic, MicOff, Video, VideoOff, Phone, PhoneOff } from "lucide-react";
 import { getAccessToken, getUserId } from "@/auth/authStorage";
 
-const VIDEO_API_URL = "http://localhost:5002"; 
+ 
 
 const VideoCall = ({ activeCall, onClose, isIncoming, callerInfo }) => {
   const [localStream, setLocalStream] = useState(null);
@@ -16,13 +16,22 @@ const VideoCall = ({ activeCall, onClose, isIncoming, callerInfo }) => {
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
+  const localStreamRef = useRef(null); // Track stream availability in ref
 
   const userId = getUserId();
 
   useEffect(() => {
+    console.log("VideoCall component mounted, initializing socket");
+    
     // Initialize Socket
-    socketRef.current = io(VIDEO_API_URL, {
+    // Connect to current origin via proxy, with specific path
+    socketRef.current = io({ 
+      path: "/api/unir/video/socket.io",
       auth: { id: String(userId), name: "User" }, 
+    });
+
+    socketRef.current.on("connect", () => {
+      console.log("Socket connected successfully, socket ID:", socketRef.current.id);
     });
 
     socketRef.current.on("call:incoming", handleIncomingCall);
@@ -33,25 +42,71 @@ const VideoCall = ({ activeCall, onClose, isIncoming, callerInfo }) => {
     socketRef.current.on("webrtc:answer", handleAnswer);
     socketRef.current.on("webrtc:ice", handleIceCandidate);
 
+    console.log("Socket event listeners registered");
+
     startLocalStream();
 
     return () => {
+      console.log("VideoCall component unmounting, cleaning up");
       cleanup();
     };
   }, []);
 
+  // Update remote video element when remote stream changes
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      console.log("Setting remote stream to video element:", remoteStream);
+      console.log("Remote stream tracks:", remoteStream.getTracks().map(t => `${t.kind}: ${t.enabled}`));
+      
+      remoteVideoRef.current.srcObject = remoteStream;
+      
+      // Explicitly play the video
+      remoteVideoRef.current.play()
+        .then(() => console.log("Remote video playing successfully"))
+        .catch(err => console.error("Failed to play remote video:", err));
+    }
+  }, [remoteStream]);
+
+  // Add local stream tracks to peer connection when stream becomes available
+  useEffect(() => {
+    console.log("Track-adding useEffect triggered. localStream:", !!localStream, "peerConnection:", !!peerConnectionRef.current);
+    
+    if (localStream && peerConnectionRef.current) {
+      console.log("Adding local stream tracks to peer connection (via useEffect)");
+      const pc = peerConnectionRef.current;
+      
+      // Check if tracks are already added
+      const senders = pc.getSenders();
+      console.log("Current senders count:", senders.length);
+      
+      if (senders.length === 0) {
+        localStream.getTracks().forEach((track) => {
+          console.log("  - Adding track via useEffect:", track.kind, "enabled:", track.enabled);
+          pc.addTrack(track, localStream);
+        });
+        console.log("Tracks added successfully via useEffect!");
+      } else {
+        console.log("Tracks already added, skipping");
+      }
+    }
+  }, [localStream, peerConnectionRef.current]);
+
   const startLocalStream = async () => {
     try {
+      console.log("Requesting media devices...");
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
       });
+      console.log("Got local stream:", stream.getTracks().map(t => t.kind));
       setLocalStream(stream);
+      localStreamRef.current = stream; // Also set ref
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
 
       if (!isIncoming && activeCall) {
+        console.log("Initiating call to:", activeCall.receiverId);
        
         callUser(activeCall.receiverId);
       }
@@ -73,14 +128,15 @@ const VideoCall = ({ activeCall, onClose, isIncoming, callerInfo }) => {
   };
 
   const createPeerConnection = () => {
+    console.log("Creating peer connection...");
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        
         const targetId = isIncoming ? callerInfo.callerId : activeCall.receiverId;
+        console.log("Sending ICE candidate to:", targetId);
         socketRef.current.emit("webrtc:ice", {
           to: targetId,
           candidate: event.candidate,
@@ -89,21 +145,31 @@ const VideoCall = ({ activeCall, onClose, isIncoming, callerInfo }) => {
     };
 
     pc.ontrack = (event) => {
+      console.log("Received remote track:", event.track.kind, event.streams[0]);
       setRemoteStream(event.streams[0]);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
     };
 
+    // Add local stream tracks
     if (localStream) {
-      localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+      console.log("Adding local stream tracks to peer connection:");
+      localStream.getTracks().forEach((track) => {
+        console.log("  - Adding track:", track.kind, "enabled:", track.enabled);
+        pc.addTrack(track, localStream);
+      });
+    } else {
+      console.warn("Local stream not available when creating peer connection!");
     }
 
     peerConnectionRef.current = pc;
+    console.log("Peer connection created successfully");
     return pc;
   };
 
   const callUser = (receiverId) => {
+    console.log("Emitting call:user to receiverId:", receiverId);
     socketRef.current.emit("call:user", { receiverId });
     setCallStatus("calling");
   };
@@ -112,48 +178,96 @@ const VideoCall = ({ activeCall, onClose, isIncoming, callerInfo }) => {
      };
 
   const acceptCall = async () => {
+    console.log("Accepting call from:", callerInfo.callerId);
     setCallStatus("connected");
+    
+    // Wait for local stream to be available
+    if (!localStreamRef.current) {
+      console.log("Waiting for local stream before accepting call...");
+      await new Promise(resolve => {
+        const checkStream = setInterval(() => {
+          if (localStreamRef.current) {
+            clearInterval(checkStream);
+            resolve();
+          }
+        }, 100);
+      });
+    }
+    
     const pc = createPeerConnection();
+    console.log("Peer connection created for incoming call");
 
     socketRef.current.emit("call:accept", { callerId: callerInfo.callerId });
+    console.log("Emitted call:accept");
   };
   
   const handleCallAccepted = async () => {
+    console.log("Call accepted! Creating offer...");
     setCallStatus("connected");
+    
+    // Wait for local stream to be available
+    if (!localStreamRef.current) {
+      console.log("Waiting for local stream before creating offer...");
+      await new Promise(resolve => {
+        const checkStream = setInterval(() => {
+          if (localStreamRef.current) {
+            clearInterval(checkStream);
+            resolve();
+          }
+        }, 100);
+      });
+    }
+    
     const pc = createPeerConnection();
+    console.log("Peer connection created for accepted call");
     const offer = await pc.createOffer();
+    console.log("Created offer:", offer.type);
     await pc.setLocalDescription(offer);
     
     socketRef.current.emit("webrtc:offer", { 
         to: activeCall.receiverId,
         offer
     });
+    console.log("Sent offer to:", activeCall.receiverId);
   };
   
   const handleOffer = async ({ from, offer }) => {
+     console.log("Received offer from:", from);
      
      let pc = peerConnectionRef.current;
-     if(!pc) pc = createPeerConnection();
+     if(!pc) {
+       console.log("No peer connection exists, creating one");
+       pc = createPeerConnection();
+     }
      
      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+     console.log("Set remote description (offer)");
      const answer = await pc.createAnswer();
+     console.log("Created answer:", answer.type);
      await pc.setLocalDescription(answer);
      
      socketRef.current.emit("webrtc:answer", {
          to: from,
          answer
      });
+     console.log("Sent answer to:", from);
   };
 
   const handleAnswer = async ({ from, answer }) => {
+      console.log("Received answer from:", from);
       const pc = peerConnectionRef.current;
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      console.log("Set remote description (answer)");
   };
 
   const handleIceCandidate = async ({ from, candidate }) => {
+      console.log("Received ICE candidate from:", from);
       const pc = peerConnectionRef.current;
       if(pc) {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log("Added ICE candidate");
+      } else {
+          console.warn("Received ICE candidate but no peer connection exists");
       }
   };
   
@@ -184,8 +298,21 @@ const VideoCall = ({ activeCall, onClose, isIncoming, callerInfo }) => {
           ref={remoteVideoRef}
           autoPlay
           playsInline
+          muted={false}
           className="w-full h-full object-cover"
+          onLoadedMetadata={(e) => {
+            console.log("Remote video metadata loaded, attempting play");
+            e.target.play().catch(err => console.error("Remote video play failed:", err));
+          }}
         />
+        
+        {/* Debug Info */}
+        {!remoteStream && callStatus === "connected" && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-center">
+            <p className="text-lg">Waiting for remote video...</p>
+            <p className="text-sm opacity-70 mt-2">Check console for debug info</p>
+          </div>
+        )}
         
         {/* Local Video */}
         <div className="absolute top-4 right-4 w-48 aspect-video bg-gray-800 rounded-lg overflow-hidden border-2 border-gray-700 shadow-lg z-10">

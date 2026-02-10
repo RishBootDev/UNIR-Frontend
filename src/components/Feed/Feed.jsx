@@ -1,9 +1,10 @@
 import { PostComposer } from "./PostComposer";
 import { Post } from "./Post";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Globe } from "lucide-react";
 import { useFeed } from "@/hooks/useFeed";
 import { InlineError } from "@/components/ui/InlineError";
 import { Skeleton } from "@/components/ui/Skeleton";
+
 
 export function Feed() {
   const { posts, loading, error, isEmpty, refetch, addPost } = useFeed();

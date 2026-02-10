@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/context/useAuth";
 import { ThumbsUp, MessageCircle, Repeat2, Send, MoreHorizontal, Globe } from "lucide-react";
 import { postsService } from "@/services/api";
@@ -9,7 +9,23 @@ export const Post = memo(function Post({ post }) {
   const [liked, setLiked] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
-  const [localComments, setLocalComments] = useState(() => post?.commentItems ?? []);
+  const [localComments, setLocalComments] = useState([]);
+  const [serverComments, setServerComments] = useState([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+
+  // Fetch comments when opening the section
+  // we use a separate useEffect to monitor showComments
+  // if showComments is true and !commentsLoaded, fetch
+  useEffect(() => {
+    if (showComments && !commentsLoaded) {
+        postsService.getComments(post.id)
+            .then(data => {
+                setServerComments(data || []);
+                setCommentsLoaded(true);
+            })
+            .catch(err => console.error("Failed to fetch comments", err));
+    }
+  }, [showComments, commentsLoaded, post.id]);
 
   const handleLike = async () => {
     const nextLiked = !liked;
@@ -26,16 +42,25 @@ export const Post = memo(function Post({ post }) {
   };
 
   const likeCount = (post?.likes ?? 0) + (liked ? 1 : 0);
-  const commentCount = (post?.comments ?? localComments.length) + Math.max(0, localComments.length - (post?.commentItems?.length ?? 0));
-
+  
+  // Combine server comments and local comments
   const comments = useMemo(() => {
-    const base = Array.isArray(post?.commentItems) ? post.commentItems : [];
-    const extra = Array.isArray(localComments) ? localComments : [];
-    // Deduplicate by id
-    const map = new Map();
-    for (const c of [...base, ...extra]) map.set(String(c.id || `${c.author?.name}-${c.timeAgo}-${c.content}`), c);
-    return Array.from(map.values());
-  }, [post, localComments]);
+    // Start with server comments
+    // Map DTO to component structure if needed, but naming seems consistent (author, content, timeAgo)
+    const base = serverComments.map(c => ({
+        ...c,
+        author: {
+            ...c.author,
+            avatar: c.author?.avatar || c.author?.profilePictureUrl || ""
+        }
+    }));
+    
+    // Add local comments (optimistic)
+    // Filter out locals if they are already in server (by id if both have real ids, but locals are 'local-')
+    return [...base, ...localComments];
+  }, [serverComments, localComments]);
+
+  const commentCount = (post?.comments ?? 0) + Math.max(0, comments.length - (post?.commentItems?.length ?? 0)); // refined count logic could be complex, sticking to simple visual count
 
   const submitComment = async () => {
     const text = commentText.trim();
@@ -55,10 +80,18 @@ export const Post = memo(function Post({ post }) {
     
     setLocalComments((prev) => [...prev, newComment]);
     setCommentText("");
+    
+    // Force comment section open if not already (it should be if they are typing)
+    if (!showComments) setShowComments(true);
 
     try {
         await postsService.commentOnPost(post.id, text);
-        // We could fetch comments again to replace the optimistic one, but keeping it simple for now
+        // Refresh comments from server to get true ID and timestamp? 
+        // Or just let local stay until reload. 
+        // Better: background refresh
+        const refreshed = await postsService.getComments(post.id);
+        setServerComments(refreshed);
+        setLocalComments(prev => prev.filter(c => c.id !== newComment.id)); // Remove optimistic, replaced by real
     } catch (err) {
         console.error("Failed to post comment", err);
         // Optionally remove the optimistic comment

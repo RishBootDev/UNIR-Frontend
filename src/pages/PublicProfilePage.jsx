@@ -88,7 +88,12 @@ export default function PublicProfilePage() {
                      </div>
                      <div className="flex gap-2 mt-4">
                          <button className="unir-btn-primary px-6">Connect</button>
-                         <button className="px-4 py-1.5 border border-slate-400 rounded-full font-semibold hover:bg-slate-50 transition">Message</button>
+                         <button 
+                            onClick={() => navigate('/messaging', { state: { selectedUser: profile } })}
+                            className="px-4 py-1.5 border border-slate-400 rounded-full font-semibold hover:bg-slate-50 transition"
+                         >
+                            Message
+                         </button>
                      </div>
                  </div>
 
