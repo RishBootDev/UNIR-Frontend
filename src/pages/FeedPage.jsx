@@ -5,7 +5,7 @@ import { Feed } from "@/components/Feed/Feed";
 
 export default function FeedPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       <Navbar />
       <div className="pt-[72px]">
         <div className="max-w-[1240px] mx-auto px-6 py-8">

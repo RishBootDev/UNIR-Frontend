@@ -70,7 +70,7 @@ export default function CompanyPage() {
 
   if (error || !company) {
     return (
-      <div className="min-h-screen bg-[#f3f2ef]">
+      <div className="min-h-screen">
         <Navbar />
         <div className="pt-[80px] max-w-4xl mx-auto px-4 text-center">
             <h1 className="text-2xl font-bold text-gray-800">Company Not Found</h1>
@@ -82,7 +82,7 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f2ef]">
+    <div className="min-h-screen">
       <Navbar />
       <div className="pt-[72px] max-w-[1128px] mx-auto px-4 pb-10">
         

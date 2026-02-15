@@ -36,7 +36,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Visual Side - Consistent with Login */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-700 via-blue-800 to-slate-900 items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">

@@ -22,12 +22,18 @@ const InstitutionPage = lazy(() => import("@/pages/InstitutionPage"));
 const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
 const SubscriptionSuccessPage = lazy(() => import("@/pages/SubscriptionSuccessPage"));
 
+import NotificationPopup from "@/components/NotificationPopup";
+
+import GlobalBackground from "@/components/GlobalBackground";
+
 export default function App() {
   const { isAuthenticated } = useAuth();
 
   return (
     <ErrorBoundary>
       <Suspense fallback={<FullPageSpinner />}>
+        <GlobalBackground />
+        {isAuthenticated && <NotificationPopup />}
         <Routes>
           <Route path="/" element={isAuthenticated ? <Navigate to="/feed" replace /> : <HomePage />} />
 

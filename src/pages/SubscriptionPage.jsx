@@ -111,7 +111,7 @@ export default function SubscriptionPage() {
     if (subLoading) return <div className="min-h-screen flex items-center justify-center"><Spinner /></div>;
 
     return (
-        <div className="min-h-screen bg-[#f3f2ef]">
+        <div className="min-h-screen">
             <Navbar />
             <div className="pt-[100px] max-w-4xl mx-auto px-4 pb-10">
                 

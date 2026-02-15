@@ -136,7 +136,7 @@ export default function NetworkPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f2ee]">
+    <div className="min-h-screen">
       <Navbar />
       <div className="pt-[72px] max-w-[1128px] mx-auto px-4 pb-10">
         

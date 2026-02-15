@@ -6,7 +6,11 @@ import { postsService } from "@/services/api";
 export const Post = memo(function Post({ post }) {
   const { user, profile } = useAuth();
   const author = post?.author ?? {};
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(post?.likedByCurrentUser ?? false);
+
+  useEffect(() => {
+    setLiked(post?.likedByCurrentUser ?? false);
+  }, [post?.likedByCurrentUser]);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [localComments, setLocalComments] = useState([]);
@@ -41,7 +45,25 @@ export const Post = memo(function Post({ post }) {
     }
   };
 
-  const likeCount = (post?.likes ?? 0) + (liked ? 1 : 0);
+  const likeCount = (post?.likes ?? 0) + (liked ? 1 : 0) - (post?.likedByCurrentUser ? 1 : 0);
+  // Logic: 
+  // If initially liked (server says 1), and currently liked (state 1), delta is 0.
+  // If initially liked (server says 1), and currently unliked (state 0), delta is -1.
+  // If initially unliked (server says 0), and currently liked (state 1), delta is +1.
+  // Wait, post.likes comes from server count.
+  // If I liked it, server count includes me.
+  // If I untoggle, I want count - 1.
+  // If I didn't like it, server count excludes me. 
+  // If I toggle, I want count + 1.
+  
+  // Revised logic:
+  // Base count is post.likeCount (from DTO). 
+  // Modifier: 
+  // if (liked && !post.likedByCurrentUser) +1
+  // if (!liked && post.likedByCurrentUser) -1
+  // else 0
+  
+  const displayLikeCount = (post?.likeCount ?? 0) + (liked && !post?.likedByCurrentUser ? 1 : (!liked && post?.likedByCurrentUser ? -1 : 0));
   
   // Combine server comments and local comments
   const comments = useMemo(() => {
@@ -150,7 +172,7 @@ export const Post = memo(function Post({ post }) {
                     <div className="w-2 h-2 bg-white rounded-full opacity-50" />
                 </div>
             </div>
-            <span className="text-xs font-bold text-slate-500">{likeCount} reactions</span>
+            <span className="text-xs font-bold text-slate-500">{displayLikeCount} reactions</span>
         </div>
         <div className="flex gap-4">
           <button className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">{commentCount} comments</button>
