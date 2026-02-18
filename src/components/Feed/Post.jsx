@@ -2,10 +2,13 @@ import { memo, useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/context/useAuth";
 import { ThumbsUp, MessageCircle, Repeat2, Send, MoreHorizontal, Globe } from "lucide-react";
 import { postsService } from "@/services/api";
+import { useNavigate } from "react-router-dom";
 
 export const Post = memo(function Post({ post }) {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const author = post?.author ?? {};
+  const authorUserId = post?.userId || author?.userId || author?.id;
   const [liked, setLiked] = useState(post?.likedByCurrentUser ?? false);
 
   useEffect(() => {
@@ -133,12 +136,16 @@ export const Post = memo(function Post({ post }) {
                     "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
                 }
                 alt={author.name || "Profile"}
-                className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 shadow-sm"
+                className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 shadow-sm cursor-pointer hover:ring-blue-300 transition-all"
+                onClick={() => authorUserId && navigate(`/profile/view/${authorUserId}`)}
                 />
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full" />
             </div>
             <div>
-              <h3 className="font-extrabold text-slate-900 hover:text-blue-600 transition-colors cursor-pointer tracking-tight">
+              <h3 
+                className="font-extrabold text-slate-900 hover:text-blue-600 hover:underline transition-colors cursor-pointer tracking-tight"
+                onClick={() => authorUserId && navigate(`/profile/view/${authorUserId}`)}
+              >
                 {author.name || "Unknown"}
               </h3>
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest line-clamp-1 mb-1">{author.headline || "Professional"}</p>
@@ -207,8 +214,14 @@ export const Post = memo(function Post({ post }) {
           <div className="mt-4 space-y-4">
             {comments.map((c) => (
               <div key={c.id} className="flex gap-3 items-start">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-sm shrink-0">
-                  {(c.author?.name || "U").slice(0, 1).toUpperCase()}
+                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0 bg-slate-200">
+                  {c.author?.avatar ? (
+                    <img src={c.author.avatar} alt={c.author?.name || "User"} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-black text-white">
+                      {(c.author?.name || "U").slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
@@ -228,7 +241,11 @@ export const Post = memo(function Post({ post }) {
           </div>
           <div className="flex gap-3 mt-6">
             <img
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
+              src={
+                profile?.profilePictureUrl ||
+                user?.avatar ||
+                "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"
+              }
               alt="Your profile"
               className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-md shrink-0"
             />

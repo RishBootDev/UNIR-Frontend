@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { profileService } from "@/services/api";
+import { profileService, networkService } from "@/services/api";
 import { Navbar } from "@/components/Navbar/Navbar";
 import { Spinner } from "@/components/ui/Spinner";
-import { User, MapPin, Briefcase, Mail, Link as LinkIcon, Calendar, Building2, School, X } from "lucide-react";
+import { User, MapPin, Briefcase, Mail, Link as LinkIcon, Calendar, Building2, School, X, Check, UserPlus, Clock } from "lucide-react";
 
 export default function PublicProfilePage() {
   const { userId } = useParams();
@@ -11,12 +11,36 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState("unknown"); // unknown, connected, not_connected, pending, sending
 
   useEffect(() => {
     if (userId) {
       loadProfile();
+      checkConnectionStatus();
     }
   }, [userId]);
+
+  const checkConnectionStatus = async () => {
+    try {
+      const isConnected = await networkService.checkConnection(userId);
+      setConnectionStatus(isConnected ? "connected" : "not_connected");
+    } catch (err) {
+      console.error("Failed to check connection status", err);
+      setConnectionStatus("not_connected");
+    }
+  };
+
+  const handleConnect = async () => {
+    try {
+      setConnectionStatus("sending");
+      await networkService.sendConnectionRequest(userId);
+      setConnectionStatus("pending");
+    } catch (err) {
+      console.error("Failed to send connection request", err);
+      setConnectionStatus("not_connected");
+      alert("Failed to send connection request");
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -54,7 +78,14 @@ export default function PublicProfilePage() {
         
         {/* Header Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
-            <div className="h-[200px] w-full bg-slate-700 relative">
+            <div className="h-[200px] w-full bg-slate-700 relative overflow-hidden">
+                 {profile.coverImage && (
+                     <img 
+                       src={profile.coverImage} 
+                       alt="Cover" 
+                       className="absolute inset-0 w-full h-full object-cover"
+                     />
+                 )}
                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
             </div>
             
@@ -87,7 +118,23 @@ export default function PublicProfilePage() {
                          </div>
                      </div>
                      <div className="flex gap-2 mt-4">
-                         <button className="unir-btn-primary px-6">Connect</button>
+                         {connectionStatus === "connected" ? (
+                           <button className="flex items-center gap-2 px-6 py-1.5 bg-green-50 border border-green-300 text-green-700 rounded-full font-semibold cursor-default">
+                             <Check className="w-4 h-4" /> Connected
+                           </button>
+                         ) : connectionStatus === "pending" ? (
+                           <button className="flex items-center gap-2 px-6 py-1.5 bg-gray-50 border border-gray-300 text-gray-500 rounded-full font-semibold cursor-default">
+                             <Clock className="w-4 h-4" /> Pending
+                           </button>
+                         ) : connectionStatus === "sending" ? (
+                           <button className="flex items-center gap-2 px-6 py-1.5 bg-blue-50 border border-blue-200 text-blue-400 rounded-full font-semibold cursor-default" disabled>
+                             <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /> Sending...
+                           </button>
+                         ) : (
+                           <button onClick={handleConnect} className="unir-btn-primary px-6 flex items-center gap-2">
+                             <UserPlus className="w-4 h-4" /> Connect
+                           </button>
+                         )}
                          <button 
                             onClick={() => navigate('/messaging', { state: { selectedUser: profile } })}
                             className="px-4 py-1.5 border border-slate-400 rounded-full font-semibold hover:bg-slate-50 transition"

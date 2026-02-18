@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/Navbar/Navbar";
 import { useAuth } from "@/context/useAuth";
 import { useLocation } from "react-router-dom";
-import { Search, Edit, Image, Send, Video } from "lucide-react";
+import { Search, Edit, Image, Send, Video, Users } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import { getUserId } from "@/auth/authStorage";
@@ -10,6 +10,9 @@ import { useConversations } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
 import { InlineError } from "@/components/ui/InlineError";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { networkService, profileService } from "@/services/api";
+
+const GHOST_AVATAR = "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png";
 
 export default function MessagingPage() {
   const { user } = useAuth();
@@ -22,6 +25,77 @@ export default function MessagingPage() {
   const [showVideoCall, setShowVideoCall] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const socketRef = useRef(null);
+
+  // Connections & search state
+  const [connections, setConnections] = useState([]);
+  const [connectionsLoading, setConnectionsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  // Load connections on mount (same API as My Network)
+  useEffect(() => {
+    const loadConnections = async () => {
+      try {
+        setConnectionsLoading(true);
+        const data = await networkService.getMyConnections();
+        if (data && data.length > 0) {
+          const enriched = await Promise.all(data.map(async (p) => {
+            try {
+              const profile = await profileService.getProfileById(p.userId);
+              return {
+                ...p,
+                ...profile,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                headline: profile.headline || "Member",
+                profilePictureUrl: profile.profilePictureUrl
+              };
+            } catch (e) {
+              const names = (p.name || "").split(" ");
+              return {
+                ...p,
+                firstName: names[0] || "Unknown",
+                lastName: names.slice(1).join(" ") || "",
+                headline: "Member"
+              };
+            }
+          }));
+          setConnections(enriched);
+        } else {
+          setConnections([]);
+        }
+      } catch (err) {
+        console.error("Failed to load connections for messaging", err);
+      } finally {
+        setConnectionsLoading(false);
+      }
+    };
+    loadConnections();
+  }, []);
+
+  // Debounced people search (same API as Find People in NetworkPage)
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await profileService.getProfilesByName(searchQuery);
+        setSearchResults(results || []);
+      } catch (err) {
+        console.error("Search failed", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Setup socket connection for incoming calls
   useEffect(() => {
@@ -55,11 +129,43 @@ export default function MessagingPage() {
     }
   }, [location.state]);
 
+  // Select a person (from connections or search) to chat with
+  const handleSelectPerson = (person) => {
+    setSelectedConversationId(person.userId);
+    setSearchQuery("");
+    setSearchResults([]);
+  };
+
   const selectedConversation = useMemo(() => {
     if (selectedConversationId) {
+        // Check existing conversations
         const existing = conversations?.find(c => c.id === selectedConversationId);
         if (existing) return existing;
         
+        // Check connections
+        const conn = connections.find(c => c.userId === selectedConversationId);
+        if (conn) {
+            return {
+                id: conn.userId,
+                name: `${conn.firstName} ${conn.lastName}`,
+                avatar: conn.profilePictureUrl || GHOST_AVATAR,
+                time: "New",
+                unread: false
+            };
+        }
+
+        // Check search results
+        const searched = searchResults.find(s => s.userId === selectedConversationId);
+        if (searched) {
+            return {
+                id: searched.userId,
+                name: `${searched.firstName} ${searched.lastName}`,
+                avatar: searched.profilePictureUrl || GHOST_AVATAR,
+                time: "New",
+                unread: false
+            };
+        }
+
         // If not in existing conversations, checks if it was passed via state
         if (location.state?.selectedUser?.userId === selectedConversationId) {
             const u = location.state.selectedUser;
@@ -67,7 +173,6 @@ export default function MessagingPage() {
                 id: u.userId,
                 name: `${u.firstName} ${u.lastName}`,
                 avatar: u.profilePictureUrl || u.avatar || "",
-                // Mock other fields
                 time: "New",
                 unread: false
             };
@@ -76,7 +181,7 @@ export default function MessagingPage() {
     
     if (!conversations || conversations.length === 0) return null;
     return conversations[0] ?? null;
-  }, [conversations, selectedConversationId, location.state]);
+  }, [conversations, connections, searchResults, selectedConversationId, location.state]);
 
   const {
     messages,
@@ -93,6 +198,22 @@ export default function MessagingPage() {
       setMessageText("");
     }
   };
+
+  // Determine what to show in sidebar
+  const isSearchActive = searchQuery.trim().length >= 2;
+
+  // Merge conversations and connections (conversations first, then connections not already listed)
+  const mergedSidebarList = useMemo(() => {
+    if (isSearchActive) return [];
+
+    // Conversation IDs for dedup
+    const convIds = new Set((conversations || []).map(c => c.id));
+
+    // Connections not already in conversations
+    const extraConnections = connections.filter(c => !convIds.has(c.userId));
+
+    return { conversations: conversations || [], extraConnections };
+  }, [conversations, connections, isSearchActive]);
 
   return (
     <div className="min-h-screen">
@@ -112,58 +233,136 @@ export default function MessagingPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[rgba(0,0,0,0.6)]" />
                   <input
                     type="text"
-                    placeholder="Search messages"
-                    className="w-full pl-9 pr-3 py-2 bg-[#eef3f8] rounded text-sm focus:outline-none"
+                    placeholder="Search people..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-[#eef3f8] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all"
                   />
+                  {searching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto">
-                {convError && (
-                  <div className="p-3">
-                    <InlineError
-                      title="Couldn’t load conversations"
-                      message={convError?.message || "Please try again."}
-                      onRetry={refetchConvs}
-                    />
+                {/* Search results label */}
+                {isSearchActive && (
+                  <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    {searching ? "Searching..." : `${searchResults.length} result${searchResults.length !== 1 ? "s" : ""} found`}
                   </div>
                 )}
-                {convLoading &&
-                  Array.from({ length: 6 }).map((_, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-3">
-                      <Skeleton className="w-12 h-12 rounded-full" />
-                      <div className="flex-1">
-                        <Skeleton className="h-3 w-28" />
-                        <Skeleton className="h-3 w-44 mt-2" />
-                      </div>
-                    </div>
-                  ))}
-                {convEmpty && !convLoading && (
-                  <div className="p-4 text-sm text-[rgba(0,0,0,0.6)]">No conversations yet.</div>
+
+                {/* Search empty state */}
+                {isSearchActive && !searching && searchResults.length === 0 && (
+                  <div className="p-6 text-center text-gray-500">
+                    <Search className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                    <p className="text-sm">No results for "{searchQuery}"</p>
+                  </div>
                 )}
-                {!convLoading &&
-                  conversations.map((conv) => (
-                    <div
-                      key={conv.id}
-                      onClick={() => setSelectedConversationId(conv.id)}
-                      className={`flex items-center gap-3 p-3 cursor-pointer ${
-                        selectedConversation?.id === conv.id ? "bg-[#e7f3ff]" : "hover:bg-[rgba(0,0,0,0.04)]"
-                      }`}
-                    >
-                      <div className="relative">
-                        <img src={conv.avatar} alt={conv.name} className="w-12 h-12 rounded-full" />
-                        {conv.unread && (
-                          <span className="absolute top-0 right-0 w-3 h-3 bg-[#0a66c2] rounded-full border-2 border-white" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between">
-                          <p className="font-semibold text-sm text-[rgba(0,0,0,0.9)]">{conv.name}</p>
-                          <span className="text-xs text-[rgba(0,0,0,0.6)]">{conv.time}</span>
-                        </div>
-                        <p className="text-sm truncate text-[rgba(0,0,0,0.6)]">{conv.lastMessage}</p>
-                      </div>
+
+                {/* Search results list */}
+                {isSearchActive && searchResults.map((person) => (
+                  <div
+                    key={person.userId}
+                    onClick={() => handleSelectPerson(person)}
+                    className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
+                      selectedConversationId === person.userId ? "bg-[#e7f3ff]" : "hover:bg-[rgba(0,0,0,0.04)]"
+                    }`}
+                  >
+                    <div className="relative flex-shrink-0">
+                      <img src={person.profilePictureUrl || GHOST_AVATAR} alt={person.firstName} className="w-12 h-12 rounded-full object-cover border border-gray-100" />
                     </div>
-                  ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-[rgba(0,0,0,0.9)] truncate">{person.firstName} {person.lastName}</p>
+                      <p className="text-xs text-[rgba(0,0,0,0.5)] truncate">{person.headline || "Member"}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* === Non-search: Conversations + Connections === */}
+                {!isSearchActive && (
+                  <>
+                    {/* Loading skeletons */}
+                    {(connectionsLoading || convLoading) &&
+                      Array.from({ length: 6 }).map((_, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-3">
+                          <Skeleton className="w-12 h-12 rounded-full" />
+                          <div className="flex-1">
+                            <Skeleton className="h-3 w-28" />
+                            <Skeleton className="h-3 w-44 mt-2" />
+                          </div>
+                        </div>
+                      ))}
+
+                    {/* Conversations section */}
+                    {!convLoading && mergedSidebarList.conversations.length > 0 && (
+                      <>
+                        <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                          Recent Chats ({mergedSidebarList.conversations.length})
+                        </div>
+                        {mergedSidebarList.conversations.map((conv) => (
+                          <div
+                            key={`conv-${conv.id}`}
+                            onClick={() => setSelectedConversationId(conv.id)}
+                            className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
+                              selectedConversationId === conv.id ? "bg-[#e7f3ff]" : "hover:bg-[rgba(0,0,0,0.04)]"
+                            }`}
+                          >
+                            <div className="relative flex-shrink-0">
+                              <img src={conv.avatar || GHOST_AVATAR} alt={conv.name} className="w-12 h-12 rounded-full object-cover border border-gray-100" />
+                              {conv.unread && (
+                                <span className="absolute top-0 right-0 w-3 h-3 bg-[#0a66c2] rounded-full border-2 border-white" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between">
+                                <p className="font-semibold text-sm text-[rgba(0,0,0,0.9)] truncate">{conv.name}</p>
+                                <span className="text-[10px] text-[rgba(0,0,0,0.4)] flex-shrink-0 ml-2">{conv.time}</span>
+                              </div>
+                              <p className="text-xs text-[rgba(0,0,0,0.5)] truncate">{conv.lastMessage || "Start chatting"}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Connections section (only those not already in conversations) */}
+                    {!connectionsLoading && mergedSidebarList.extraConnections.length > 0 && (
+                      <>
+                        <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                          Connections ({mergedSidebarList.extraConnections.length})
+                        </div>
+                        {mergedSidebarList.extraConnections.map((person) => (
+                          <div
+                            key={`conn-${person.userId}`}
+                            onClick={() => handleSelectPerson(person)}
+                            className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
+                              selectedConversationId === person.userId ? "bg-[#e7f3ff]" : "hover:bg-[rgba(0,0,0,0.04)]"
+                            }`}
+                          >
+                            <div className="relative flex-shrink-0">
+                              <img src={person.profilePictureUrl || GHOST_AVATAR} alt={person.firstName} className="w-12 h-12 rounded-full object-cover border border-gray-100" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm text-[rgba(0,0,0,0.9)] truncate">{person.firstName} {person.lastName}</p>
+                              <p className="text-xs text-[rgba(0,0,0,0.5)] truncate">{person.headline || "Member"}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Empty state - no conversations and no connections */}
+                    {!connectionsLoading && !convLoading && mergedSidebarList.conversations.length === 0 && mergedSidebarList.extraConnections.length === 0 && (
+                      <div className="p-6 text-center text-gray-500">
+                        <Users className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+                        <p className="text-sm">No conversations or connections yet.</p>
+                        <p className="text-xs text-gray-400 mt-1">Search for people above to start a conversation.</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
             <div className="flex-1 flex flex-col">
@@ -196,7 +395,7 @@ export default function MessagingPage() {
               <div className="flex-1 p-4 overflow-y-auto space-y-4">
                 {msgError && (
                   <InlineError
-                    title="Couldn’t load messages"
+                    title="Couldn't load messages"
                     message={msgError?.message || "Please try again."}
                     onRetry={refetchMessages}
                   />
@@ -264,4 +463,3 @@ export default function MessagingPage() {
     </div>
   );
 }
-

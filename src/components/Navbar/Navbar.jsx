@@ -11,7 +11,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/context/useAuth";
-import { companyService, institutionService } from "@/services/api";
+import { companyService, institutionService, networkService } from "@/services/api";
 import UNIR_LOGO from "@/assets/UNIR_logo.jpeg";
 
 export function Navbar() {
@@ -25,10 +25,24 @@ export function Navbar() {
   const [searchResults, setSearchResults] = useState({ companies: [], institutions: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [invitationCount, setInvitationCount] = useState(0);
   
   const profileMenuRef = useRef(null);
   const businessMenuRef = useRef(null);
   const searchRef = useRef(null); // Ref for search container
+
+  // Fetch invitation count on mount
+  useEffect(() => {
+    const fetchInvitationCount = async () => {
+      try {
+        const data = await networkService.getIncomingRequests();
+        setInvitationCount(data && data.length ? data.length : 0);
+      } catch (err) {
+        console.error("Failed to fetch invitation count", err);
+      }
+    };
+    if (user) fetchInvitationCount();
+  }, [user]);
 
   // Handle Search Debounce
   useEffect(() => {
@@ -192,7 +206,14 @@ export function Navbar() {
               }
               end
             >
-              <item.icon className={`w-5 h-5 transition-transform group-hover:scale-110 group-active:scale-90`} strokeWidth={1.8} />
+              <div className="relative">
+                <item.icon className={`w-5 h-5 transition-transform group-hover:scale-110 group-active:scale-90`} strokeWidth={1.8} />
+                {item.label === "My Network" && invitationCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full px-1 leading-none">
+                    {invitationCount > 99 ? "99+" : invitationCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] mt-1 font-medium">{item.label}</span>
               <div className="absolute bottom-0 left-4 right-4 h-1 rounded-t-full bg-blue-600 scale-x-0 group-[.active]:scale-x-100 transition-transform origin-center" />
             </NavLink>

@@ -86,18 +86,32 @@ export default function CompanyPage() {
       <Navbar />
       <div className="pt-[72px] max-w-[1128px] mx-auto px-4 pb-10">
         
-        {/* Banner Image (Placeholder) */}
-        <div className="h-[200px] w-full rounded-t-xl bg-gradient-to-r from-slate-700 to-slate-900 relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/20" />
+        {/* Banner Image */}
+        <div className="h-[200px] w-full rounded-t-xl bg-gray-100 relative overflow-hidden group">
+            {company.coverPhotoUrl ? (
+                <img 
+                    src={company.coverPhotoUrl} 
+                    alt={`${company.name} cover`} 
+                    className="w-full h-full object-cover object-center"
+                />
+            ) : (
+                <div className="w-full h-full bg-gradient-to-r from-slate-700 to-slate-900">
+                    <div className="absolute inset-0 bg-black/20" />
+                </div>
+            )}
         </div>
 
         {/* Content Section */}
         <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 px-8 pb-8 relative">
            {/* Logo - Overlapping Banner */}
            <div className="-mt-[60px] mb-4 relative z-10 inline-block">
-               <div className="w-[120px] h-[120px] bg-white p-2 rounded-xl shadow-md border border-gray-100">
+               <div className="w-[120px] h-[120px] bg-white p-1.5 rounded-xl shadow-md border border-gray-100 overflow-hidden">
                    {company.logoUrl ? (
-                       <img src={company.logoUrl} alt={company.name} className="w-full h-full object-contain" />
+                       <img 
+                           src={company.logoUrl} 
+                           alt={company.name} 
+                           className="w-full h-full object-contain object-center bg-gray-50 rounded-lg" 
+                       />
                    ) : (
                        <div className="w-full h-full bg-gray-50 flex items-center justify-center rounded-lg">
                            <Building2 className="w-12 h-12 text-gray-300" />

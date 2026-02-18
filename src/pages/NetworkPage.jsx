@@ -13,6 +13,46 @@ export default function NetworkPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+
+  // Load invitations on mount so the count is always visible in the sidebar
+  useEffect(() => {
+    const loadInvitations = async () => {
+      try {
+        const data = await networkService.getIncomingRequests();
+        if (data && data.length > 0) {
+          const enriched = await Promise.all(data.map(async (p) => {
+            try {
+              const profile = await profileService.getProfileById(p.userId);
+              return {
+                ...p,
+                ...profile,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                headline: profile.headline || "Member",
+                profilePictureUrl: profile.profilePictureUrl
+              };
+            } catch (e) {
+              console.error(`Failed to enrich request ${p.userId}`, e);
+              const names = (p.name || "").split(" ");
+              return {
+                ...p,
+                firstName: names[0] || "Unknown",
+                lastName: names.slice(1).join(" ") || "",
+                headline: "Member"
+              };
+            }
+          }));
+          setRequests(enriched);
+        } else {
+          setRequests([]);
+        }
+      } catch (err) {
+        console.error("Failed to load invitations", err);
+      }
+    };
+    loadInvitations();
+  }, []);
 
   // Initial Load
   useEffect(() => {
@@ -91,20 +131,28 @@ export default function NetworkPage() {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    
-    setLoading(true);
-    try {
-      const results = await profileService.getProfilesByName(searchQuery);
-      setSearchResults(results || []);
-    } catch (err) {
-      console.error("Search failed", err);
-    } finally {
-        setLoading(false);
+  // Dynamic debounced search for Find People
+  useEffect(() => {
+    if (activeTab !== "find") return;
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
     }
-  };
+
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await profileService.getProfilesByName(searchQuery);
+        setSearchResults(results || []);
+      } catch (err) {
+        console.error("Search failed", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeTab]);
 
   const handleAccept = async (senderId) => {
     try {
@@ -273,22 +321,24 @@ export default function NetworkPage() {
                 {activeTab === "find" && (
                     <>
                         <h2 className="text-xl font-bold mb-6">Find People</h2>
-                        <form onSubmit={handleSearch} className="mb-8">
-                            <div className="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    placeholder="Search by name..." 
-                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition-colors">
-                                    Search
-                                </button>
-                            </div>
-                        </form>
+                        <div className="relative mb-8">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input 
+                                type="text" 
+                                placeholder="Search by name..." 
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                autoFocus
+                            />
+                            {searching && (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                </div>
+                            )}
+                        </div>
 
-                        {loading ? <div className="flex justify-center p-10"><Spinner /></div> : (
+                        {(loading || searching) ? <div className="flex justify-center p-10"><Spinner /></div> : (
                             searchResults.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                      {searchResults.map((person) => (

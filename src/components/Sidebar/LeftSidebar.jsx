@@ -2,13 +2,15 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/context/useAuth";
 import { Bookmark, Plus, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { useState, useEffect } from "react";
-import { postsService } from "@/services/api";
+import { postsService, profileService, networkService } from "@/services/api";
 
 export function LeftSidebar() {
   const { user, profile } = useAuth();
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAllActivity, setShowAllActivity] = useState(false);
+  const [coverImage, setCoverImage] = useState(null);
+  const [connectionsCount, setConnectionsCount] = useState(0);
 
   useEffect(() => {
     if (user?.id) {
@@ -19,6 +21,16 @@ export function LeftSidebar() {
             })
             .catch(err => console.error("Failed to load sidebar posts", err))
             .finally(() => setLoading(false));
+
+        // Fetch cover image
+        profileService.getProfileCoverImage()
+            .then(data => setCoverImage(data.url))
+            .catch(() => {});
+
+        // Fetch connections count
+        networkService.getMyConnections()
+            .then(data => setConnectionsCount(Array.isArray(data) ? data.length : 0))
+            .catch(() => {});
     }
   }, [user?.id]);
 
@@ -26,7 +38,14 @@ export function LeftSidebar() {
     <aside className="w-[240px] flex-shrink-0">
       <div className="unir-card overflow-hidden unir-card-hover group">
         <div className="h-16 bg-gradient-to-br from-blue-600 to-indigo-700 relative overflow-hidden">
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+            {coverImage && (
+                <img 
+                    src={coverImage} 
+                    alt="Cover" 
+                    className="absolute inset-0 w-full h-full object-cover"
+                />
+            )}
+            <div className="absolute inset-0 bg-black/10 backdrop-blur-[0px]" />
         </div>
         <div className="px-4 pb-4 -mt-10 relative z-10">
           <Link to="/profile" className="block w-20 h-20 mx-auto transition-transform active:scale-95">
@@ -48,7 +67,7 @@ export function LeftSidebar() {
         <div className="border-t border-slate-100 py-4">
           <Link to="/profile" className="flex justify-between items-center px-4 py-2 text-[11px] hover:bg-slate-50 transition-colors group/row">
             <span className="text-slate-500 font-medium">Connections</span>
-            <span className="text-blue-600 font-bold group-hover/row:scale-110 transition-transform">{profile?.connections?.length || 0}</span>
+            <span className="text-blue-600 font-bold group-hover/row:scale-110 transition-transform">{connectionsCount}</span>
           </Link>
           <Link to="/profile" className="flex justify-between items-center px-4 py-2 text-[11px] hover:bg-slate-50 transition-colors group/row">
             <span className="text-slate-500 font-medium">Profile Views</span>

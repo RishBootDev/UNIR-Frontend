@@ -124,6 +124,7 @@ export default function ProfilePage() {
   const [aboutForm, setAboutForm] = useState("");
   const [keywordsForm, setKeywordsForm] = useState("");
   const [contactForm, setContactForm] = useState({ phone: "", website: "", linkedin: "", github: "", twitter: "" });
+  const [coverForm, setCoverForm] = useState({ url: "" });
   const [userPosts, setUserPosts] = useState([]);
 
   useEffect(() => {
@@ -164,6 +165,45 @@ export default function ProfilePage() {
         });
     }
   }, [profile]);
+
+    // Cover image upload handler removed in favor of URL modal
+
+
+    // Fetch cover image separately if not part of main profile object yet (or ensure refreshProfile pulls it)
+    useEffect(() => {
+        if (profile?.userId && !profile.coverImage) {
+             profileService.getProfileCoverImage()
+                .then(data => {
+                    if (data?.url) {
+                        // We need a way to update the local profile state with this image without full refresh if possible,
+                        // or just rely on refreshProfile if the backend aggregates it. 
+                        // For now, assuming we might need to patch it into view if not in main profile.
+                        // Ideally, backend 'getProfile' should return it. If not, we fetch and attach locally.
+                        // But since I can't change 'getProfile' in backend easily, I'll attach it to the profile object in context if possible or just use local state?
+                        // Actually, I'll use a local state for coverImage if it's missing from profile.
+                    }
+                })
+                .catch(() => {}); // Ignore 404
+        }
+    }, [profile?.userId]);
+    
+    // Better approach: Since I can't easily change `refreshProfile` logic inside useAuth without seeing it, 
+    // I will augment the profile object with a separate fetch for cover image if it's not present.
+    // However, the prompt said "add ProfileCoverImageController". It didn't say it's added to the main Profile entity return.
+    // So I likely need to fetch it separately.
+
+    const [coverImage, setCoverImage] = useState(null);
+
+    useEffect(() => {
+        if (profile?.userId) {
+            profileService.getProfileCoverImage()
+                .then(data => setCoverImage(data.url))
+                .catch(err => console.log("No cover image or error", err));
+        }
+    }, [profile?.userId]);
+    
+    // Merge for display
+    const displayProfile = { ...profile, coverImage: coverImage || profile?.coverImage };
 
   // Helper to format date strings (e.g. 2023-01-01 -> Jan 2023)
   const formatDate = (dateString) => {
@@ -217,6 +257,12 @@ export default function ProfilePage() {
                 break;
             case 'contact':
                 await profileService.updateContact({ ...profile.contactInfo, ...contactForm });
+                break;
+            case 'cover':
+                await profileService.addOrUpdateProfileCoverImage(coverForm.url);
+                setCoverForm({ url: "" });
+                // We also need to update the local coverImage state to show it immediately
+                setCoverImage(coverForm.url);
                 break;
         }
         await refreshProfile();
@@ -276,11 +322,21 @@ export default function ProfilePage() {
             <div className="flex-1 max-w-[790px]">
               {/* Header Card */}
               <div className="unir-card overflow-hidden unir-card-hover">
-                <div className="relative">
-                  <div className="h-[200px] bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700">
-                      <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]" />
+                <div className="relative group/cover">
+                  <div className="h-[200px] bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 overflow-hidden relative">
+                      {displayProfile?.coverImage && (
+                          <img 
+                            src={displayProfile.coverImage} 
+                            alt="Cover" 
+                            className="w-full h-full object-cover"
+                          />
+                      )}
+                      <div className="absolute inset-0 bg-black/10 transition-colors group-hover/cover:bg-black/20" />
                   </div>
-                  <button className="absolute top-6 right-6 p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl hover:bg-white/40 transition-all active:scale-95 group">
+                  <button 
+                    onClick={() => setActiveModal('cover')}
+                    className="absolute top-6 right-6 p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl hover:bg-white/40 transition-all active:scale-95 group cursor-pointer"
+                  >
                     <Camera className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
                   </button>
                 </div>
@@ -288,7 +344,7 @@ export default function ProfilePage() {
                   <div className="flex justify-between items-end">
                     <div className="relative">
                         <img
-                          src={profile?.profilePictureUrl || user?.avatar || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"}
+                          src={displayProfile?.profilePictureUrl || user?.avatar || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"}
                           alt="Profile"
                           className="w-[160px] h-[160px] rounded-[2.5rem] border-8 border-white object-cover bg-white shadow-xl"
                         />
@@ -300,12 +356,12 @@ export default function ProfilePage() {
                   </div>
                   <div className="mt-6">
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {profile ? `${profile.firstName} ${profile.lastName}` : user?.name}
+                        {displayProfile ? `${displayProfile.firstName} ${displayProfile.lastName}` : user?.name}
                     </h1>
-                    <p className="text-lg text-slate-600 mt-1 font-medium leading-relaxed max-w-2xl">{profile?.headline || user?.headline || "No headline added"}</p>
+                    <p className="text-lg text-slate-600 mt-1 font-medium leading-relaxed max-w-2xl">{displayProfile?.headline || user?.headline || "No headline added"}</p>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm text-slate-500 font-semibold">
-                        {profile?.location && <span className="flex items-center gap-1"><Globe className="w-4 h-4" /> {profile.location}</span>}
-                        {profile?.industry && <span className="flex items-center gap-1">• {profile.industry}</span>}
+                        {displayProfile?.location && <span className="flex items-center gap-1"><Globe className="w-4 h-4" /> {displayProfile.location}</span>}
+                        {displayProfile?.industry && <span className="flex items-center gap-1">• {displayProfile.industry}</span>}
                         <button 
                             onClick={() => setShowContactModal(true)}
                             className="text-blue-600 font-bold hover:underline"
@@ -313,7 +369,7 @@ export default function ProfilePage() {
                             Contact Details
                         </button>
                     </div>
-                    <p className="text-sm font-bold text-blue-600 mt-2 bg-blue-50 w-fit px-3 py-1 rounded-lg">{profile?.connections?.length || 0} Professional Connections</p>
+                    <p className="text-sm font-bold text-blue-600 mt-2 bg-blue-50 w-fit px-3 py-1 rounded-lg">{displayProfile?.connections?.length || 0} Professional Connections</p>
                   </div>
                   <div className="flex gap-3 mt-8">
                     <button className="unir-btn-primary shadow-blue-500/30">
@@ -720,6 +776,24 @@ export default function ProfilePage() {
         <Input label="GitHub URL" value={contactForm.github} onChange={v => setContactForm({...contactForm, github: v})} />
         <Input label="Twitter URL" value={contactForm.twitter} onChange={v => setContactForm({...contactForm, twitter: v})} />
         <p className="text-xs text-gray-500 mt-1">Note: Email is managed via your account settings.</p>
+      </FormModal>
+
+      <FormModal 
+        title="Update Cover Image" 
+        isOpen={activeModal === 'cover'} 
+        onClose={() => setActiveModal(null)} 
+        onSave={() => handleSaveItem('cover')}
+        isSubmitting={isSubmitting}
+      >
+        <Input 
+            label="Cover Image URL" 
+            placeholder="https://example.com/image.jpg" 
+            value={coverForm.url} 
+            onChange={v => setCoverForm({...coverForm, url: v})} 
+        />
+        <p className="text-xs text-gray-500 mt-1">
+            Enter the URL of the image you want to use as your cover.
+        </p>
       </FormModal>
 
       {/* Contact Info Modal */}

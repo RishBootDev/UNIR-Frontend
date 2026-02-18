@@ -142,6 +142,11 @@ export const profileService = {
   addLanguage: (data) => apiFetch("/profile/language", { method: "POST", body: data }),
   addKeyword: (keyword) => apiFetch("/profile/keyword", { method: "POST", body: keyword }),
 
+  // Profile Cover Image
+  getProfileCoverImage: () => apiFetch("/profileCover"),
+  addOrUpdateProfileCoverImage: (url) => apiFetch("/profileCover", { method: "POST", body: { url } }),
+  removeProfileCoverImage: () => apiFetch("/profileCover", { method: "DELETE" }),
+
   // ========== STEP-SPECIFIC METHODS (Idempotent) ==========
   updateSummary: (summary) => apiFetch("/profile/summary", { method: "PUT", body: summary }),
   setExperiences: (experiences) => apiFetch("/profile/experiences", { method: "PUT", body: experiences }),
@@ -168,6 +173,7 @@ export const networkService = {
     apiFetch(`/connections/accept/${senderId}`, { method: "POST" }),
   rejectRequest: (senderId) =>
     apiFetch(`/connections/reject/${senderId}`, { method: "POST" }),
+  checkConnection: (userId) => apiFetch(`/connections/check/${userId}`),
 };
 
 export const jobsService = {
