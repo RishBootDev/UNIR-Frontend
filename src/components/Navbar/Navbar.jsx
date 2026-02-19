@@ -9,6 +9,7 @@ import {
   Search,
   Grid3X3,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/useAuth";
 import { companyService, institutionService, networkService } from "@/services/api";
@@ -99,6 +100,7 @@ export function Navbar() {
       { to: "/jobs", icon: Briefcase, label: "Jobs" },
       { to: "/messaging", icon: MessageSquare, label: "Messaging" },
       { to: "/notifications", icon: Bell, label: "Notifications" },
+      { to: "/ai-assistant", icon: Sparkles, label: "Astra AI" },
     ],
     []
   );

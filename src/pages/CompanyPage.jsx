@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { companyService, experienceService } from "@/services/api";
+import { companyService, experienceService, aiService } from "@/services/api";
 import { Navbar } from "@/components/Navbar/Navbar";
 import { Spinner } from "@/components/ui/Spinner";
-import { Building2, Globe, MapPin, Briefcase, Plus, Check, User } from "lucide-react";
+import { Building2, Globe, MapPin, Briefcase, Plus, Check, User, ExternalLink } from "lucide-react";
 import { useAuth } from "@/context/useAuth";
 
 export default function CompanyPage() {
@@ -19,9 +19,19 @@ export default function CompanyPage() {
   const [people, setPeople] = useState([]);
   const [loadingPeople, setLoadingPeople] = useState(false);
 
+  const [jobs, setJobs] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(false);
+  const [jobsError, setJobsError] = useState(null);
+
   useEffect(() => {
     if (activeTab === "People" && company && people.length === 0) {
         loadPeople();
+    }
+  }, [activeTab, company]);
+
+  useEffect(() => {
+    if (activeTab === "Jobs" && company && jobs.length === 0 && !loadingJobs) {
+      loadJobs();
     }
   }, [activeTab, company]);
 
@@ -34,6 +44,20 @@ export default function CompanyPage() {
         console.error("Failed to load people", err);
     } finally {
         setLoadingPeople(false);
+    }
+  };
+
+  const loadJobs = async () => {
+    try {
+      setLoadingJobs(true);
+      setJobsError(null);
+      const response = await aiService.searchJobs(company.name);
+      setJobs(response?.data || []);
+    } catch (err) {
+      console.error("Failed to load jobs", err);
+      setJobsError("Could not load job listings. Please try again later.");
+    } finally {
+      setLoadingJobs(false);
     }
   };
 
@@ -254,7 +278,59 @@ export default function CompanyPage() {
                 </div>
             )}
 
+            {activeTab === "Jobs" && (
+              <div className="unir-card p-6 min-h-[400px]">
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-blue-600" />
+                  Jobs at {company.name}
+                </h2>
+                {loadingJobs ? (
+                  <div className="flex justify-center py-10"><Spinner /></div>
+                ) : jobsError ? (
+                  <div className="text-center py-10">
+                    <p className="text-red-500 text-sm mb-3">{jobsError}</p>
+                    <button
+                      onClick={loadJobs}
+                      className="text-sm font-semibold text-blue-600 border border-blue-600 rounded-full px-4 py-1.5 hover:bg-blue-50 transition"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : jobs.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {jobs.map((job, i) => (
+                      <div
+                        key={i}
+                        className="border border-slate-200 rounded-xl p-4 hover:shadow-md hover:border-blue-200 transition-all bg-white group flex flex-col gap-2"
+                      >
+                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors leading-snug">
+                          {job.title}
+                        </h3>
+                        {job.snippet && (
+                          <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed">{job.snippet}</p>
+                        )}
+                        <a
+                          href={job.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-auto inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 border border-blue-600 rounded-full px-3 py-1 hover:bg-blue-50 transition w-fit"
+                        >
+                          <ExternalLink className="w-3 h-3" /> View Job
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-gray-500">
+                    <Briefcase className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                    <p>No job listings found for {company.name}.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
         </div>
+
 
       </div>
     </div>

@@ -14,7 +14,8 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
-
+      // All REST APIs go through the API Gateway (port 9000)
+      // This covers: /api/unir/auth, /api/unir/profile, /api/unir/ai, etc.
       "/api/unir": {
         target: "http://localhost:9000",
         changeOrigin: true,

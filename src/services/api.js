@@ -153,6 +153,7 @@ export const profileService = {
   setEducations: (educations) => apiFetch("/profile/educations", { method: "PUT", body: educations }),
   setSkillsAndLanguages: (skills, languages) => apiFetch("/profile/skills-languages", { method: "PUT", body: { skills, languages } }),
   setProjectsAndCerts: (projects, certifications) => apiFetch("/profile/projects-certs", { method: "PUT", body: { projects, certifications } }),
+  getSkills: (userId) => apiFetch(`/profile/getSkills?userId=${userId}`, { method: "GET" }),
 };
 
 export const companyService = {
@@ -218,5 +219,13 @@ export const paymentService = {
 export const subscriptionService = {
   getStatus: (userId) => apiFetch(`/subscriptions/status/${userId}`),
   cancelSubscription: (userId) => apiFetch(`/subscriptions/cancel/${userId}`, { method: "POST" }),
+};
+
+export const aiService = {
+  searchJobs: (companyName) =>
+    apiFetch("/ai/searchJobs", {
+      method: "POST",
+      body: { query: companyName },
+    }),
 };
 

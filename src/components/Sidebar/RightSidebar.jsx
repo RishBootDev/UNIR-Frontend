@@ -1,20 +1,51 @@
-import { Info, ChevronDown, UserPlus, Check } from "lucide-react";
+import { Info, Newspaper, RefreshCw, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { networkService, profileService } from "@/services/api";
+import { getTopNews } from "@/services/aiService";
+import { useAuth } from "@/context/useAuth";
 
 export function RightSidebar() {
-  const [showAllNews, setShowAllNews] = useState(false);
+  const { profile } = useAuth();
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sentRequests, setSentRequests] = useState(new Set()); // Track sent requests
+  const [sentRequests, setSentRequests] = useState(new Set());
 
-  const newsItems = [
-    { title: "Tech layoffs continue in 2024", readers: "12,543", time: "2h ago" },
-    { title: "AI regulations proposed by EU", readers: "8,721", time: "4h ago" },
-    { title: "Remote work trends shifting", readers: "6,234", time: "5h ago" },
-    { title: "Startup funding rebounds Q1", readers: "4,892", time: "6h ago" },
-    { title: "New JavaScript framework released", readers: "3,156", time: "8h ago" },
-  ];
+  // Top News state
+  const [newsText, setNewsText] = useState(null);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [newsError, setNewsError] = useState(null);
+
+  // Fetch AI Top News on mount using user's profile headline as the field
+  useEffect(() => {
+    const fetchNews = async () => {
+      const field = profile?.industry || "Technology";
+      setNewsLoading(true);
+      setNewsError(null);
+      try {
+        const res = await getTopNews(field);
+        setNewsText(res?.data || res);
+      } catch (err) {
+        setNewsError("Could not load news.");
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+    fetchNews();
+  }, [profile?.industry]);
+
+  const handleRefreshNews = async () => {
+    const field = profile?.industry || "Technology";
+    setNewsLoading(true);
+    setNewsError(null);
+    try {
+      const res = await getTopNews(field);
+      setNewsText(res?.data || res);
+    } catch (err) {
+      setNewsError("Could not load news.");
+    } finally {
+      setNewsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -77,33 +108,73 @@ export function RightSidebar() {
 
   return (
     <aside className="w-[300px] flex-shrink-0">
+      {/* UNIR Top News – AI powered, free for all users */}
       <div className="unir-card p-5 unir-card-hover">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-slate-800 tracking-tight">UNIR Spotlight</h3>
-          <Info className="w-4 h-4 text-slate-400 cursor-help hover:text-blue-500 transition-colors" />
+          <div className="flex items-center gap-2">
+            <Newspaper className="w-4 h-4 text-orange-500" />
+            <h3 className="font-bold text-slate-800 tracking-tight">UNIR Spotlight</h3>
+          </div>
+          <button
+            onClick={handleRefreshNews}
+            disabled={newsLoading}
+            title="Refresh news"
+            className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-orange-500 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${newsLoading ? "animate-spin" : ""}`} />
+          </button>
         </div>
-        <ul className="space-y-3">
-          {newsItems.slice(0, showAllNews ? newsItems.length : 3).map((item, index) => (
-            <li key={index} className="group/news">
-              <a href="#" className="block py-1 hover:bg-slate-50 transition-colors rounded-xl -mx-2 px-2">
-                <p className="text-sm font-bold text-slate-700 leading-tight group-hover/news:text-blue-600 transition-colors">
+
+        {newsLoading ? (
+          <div className="space-y-3 animate-pulse">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="space-y-1">
+                <div className="h-3 bg-slate-100 rounded w-full" />
+                <div className="h-2 bg-slate-100 rounded w-3/4" />
+              </div>
+            ))}
+          </div>
+        ) : newsError ? (
+          <p className="text-xs text-slate-400 text-center py-4">{newsError}</p>
+        ) : Array.isArray(newsText) && newsText.length > 0 ? (
+          <ul className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            {newsText.map((item, i) => (
+              <li key={i} className="border-b border-slate-100 pb-2.5 last:border-0 last:pb-0">
+                <p className="text-[12px] font-semibold text-slate-800 leading-snug">
                   {item.title}
                 </p>
-                <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-1.5 py-0.5 rounded-md">{item.time}</span>
-                    <span className="text-[10px] text-slate-400 font-medium">• {item.readers} readers</span>
+                {item.description && (
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed line-clamp-2">
+                    {item.description}
+                  </p>
+                )}
+                <div className="flex items-center justify-between mt-1">
+                  {item.source && (
+                    <span className="text-[10px] text-slate-400 font-medium bg-slate-100 px-1.5 py-0.5 rounded-md">
+                      {item.source}
+                    </span>
+                  )}
+                  {item.url && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-semibold text-orange-500 hover:text-orange-600 hover:underline inline-block transition-colors"
+                    >
+                      Read more →
+                    </a>
+                  )}
                 </div>
-              </a>
-            </li>
-          ))}
-        </ul>
-        <button
-          onClick={() => setShowAllNews(!showAllNews)}
-          className="flex items-center justify-center gap-1 mt-4 text-[11px] font-bold text-blue-600 hover:bg-blue-50 w-full py-2 rounded-xl transition-all"
-        >
-          {showAllNews ? "View less stories" : "View more stories"}{" "}
-          <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${showAllNews ? "rotate-180" : ""}`} />
-        </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-slate-400 text-center py-4">No news available.</p>
+        )}
+
+        <p className="mt-3 text-[10px] text-slate-400 italic">
+          AI-curated for: {profile?.industry || "Technology"}
+        </p>
       </div>
 
       <div className="unir-card mt-3 p-5 unir-card-hover">

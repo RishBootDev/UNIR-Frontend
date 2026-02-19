@@ -21,6 +21,8 @@ const CompanyPage = lazy(() => import("@/pages/CompanyPage"));
 const InstitutionPage = lazy(() => import("@/pages/InstitutionPage"));
 const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
 const SubscriptionSuccessPage = lazy(() => import("@/pages/SubscriptionSuccessPage"));
+const AiAssistantPage = lazy(() => import("@/pages/AiAssistantPage"));
+const JobsPage = lazy(() => import("@/pages/JobsPage"));
 
 import NotificationPopup from "@/components/NotificationPopup";
 
@@ -43,7 +45,7 @@ export default function App() {
           <Route element={<RequireAuth />}>
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/network" element={<NetworkPage />} />
-            <Route path="/jobs" element={<ExternalRedirect url="http://localhost:2025/HireSenseApplication_war_exploded/index.jsp" />} />
+            <Route path="/jobs" element={<JobsPage />} />
             <Route path="/messaging" element={<MessagingPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
@@ -53,6 +55,7 @@ export default function App() {
             <Route path="/institution/:name" element={<InstitutionPage />} />
             <Route path="/premium" element={<SubscriptionPage />} />
             <Route path="/premium-success" element={<SubscriptionSuccessPage />} />
+            <Route path="/ai-assistant" element={<AiAssistantPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />
