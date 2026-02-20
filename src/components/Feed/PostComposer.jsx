@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/context/useAuth";
-import { Image, Video, Calendar, FileText, X } from "lucide-react";
+import { Image, Video, Calendar, FileText, X, Sparkles, Loader2, AlertTriangle } from "lucide-react";
+import { generateCaption } from "@/services/aiService";
 
 export function PostComposer({ onPost }) {
   const { user, profile } = useAuth();
@@ -10,6 +11,36 @@ export function PostComposer({ onPost }) {
   const [postType, setPostType] = useState("NORMAL"); // NORMAL, JOB, ARTICLE
   const [mediaUrl, setMediaUrl] = useState("");
   const [showMediaInput, setShowMediaInput] = useState(false);
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
+  const [captionError, setCaptionError] = useState(null);
+  const captionFileRef = useRef(null);
+
+  const handleGenerateCaption = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsGeneratingCaption(true);
+    setCaptionError(null);
+    try {
+      const res = await generateCaption(file);
+      const content = res?.data?.content || res?.content;
+      if (content?.caption) {
+        let newContent = content.caption;
+        if (content.hashtags?.length > 0) {
+          newContent += "\n\n" + content.hashtags.map(t => t.startsWith("#") ? t : `#${t}`).join(" ");
+        }
+        setPostContent(prev => prev ? `${prev}\n\n${newContent}` : newContent);
+      }
+    } catch (err) {
+      if (err.code === "PREMIUM_REQUIRED" || err.message?.includes("Premium")) {
+        setCaptionError("premium");
+      } else {
+        setCaptionError(err.message || "Failed to generate caption.");
+      }
+    } finally {
+      setIsGeneratingCaption(false);
+      if (captionFileRef.current) captionFileRef.current.value = "";
+    }
+  };
 
   const handlePost = () => {
     if (postContent.trim()) {
@@ -109,6 +140,19 @@ export function PostComposer({ onPost }) {
               </button>
             </div>
             <div className="p-8">
+              <input 
+                type="file" 
+                ref={captionFileRef} 
+                accept=".png,.jpg,.jpeg,.webp,.pdf,.doc,.docx" 
+                className="hidden" 
+                onChange={handleGenerateCaption} 
+              />
+              {captionError && (
+                <div className="flex items-center gap-3 p-4 mb-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <p>{captionError === "premium" ? "Premium membership is required to use AI Caption Generator." : captionError}</p>
+                </div>
+              )}
               <textarea
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
@@ -132,14 +176,23 @@ export function PostComposer({ onPost }) {
                     { icon: Image, onClick: () => setShowMediaInput(!showMediaInput), active: showMediaInput },
                     { icon: Video, onClick: () => {}, active: false },
                     { icon: FileText, onClick: () => setPostType(postType === "ARTICLE" ? "NORMAL" : "ARTICLE"), active: postType === "ARTICLE" },
-                    { icon: Calendar, onClick: () => {}, active: false }
+                    { icon: Calendar, onClick: () => {}, active: false },
+                    { icon: isGeneratingCaption ? Loader2 : Sparkles, onClick: () => captionFileRef.current?.click(), active: false, isAi: true, title: "Generate Caption (Premium)" }
                 ].map((item, idx) => (
                     <button 
                         key={idx} 
                         onClick={item.onClick}
-                        className={`p-3 rounded-2xl transition-all active:scale-90 ${item.active ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-blue-600 hover:bg-white hover:shadow-md'}`}
+                        disabled={isGeneratingCaption}
+                        title={item.title || ""}
+                        className={`p-3 rounded-2xl transition-all active:scale-90 ${
+                          item.isAi 
+                            ? 'text-purple-500 hover:text-purple-600 hover:bg-purple-50' 
+                            : item.active 
+                              ? 'bg-blue-100 text-blue-600' 
+                              : 'text-slate-400 hover:text-blue-600 hover:bg-white hover:shadow-md'
+                        }`}
                     >
-                        <item.icon className="w-5 h-5" />
+                        <item.icon className={`w-5 h-5 ${item.icon === Loader2 ? "animate-spin" : ""}`} />
                     </button>
                 ))}
               </div>

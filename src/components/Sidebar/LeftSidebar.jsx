@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/useAuth";
-import { Bookmark, Plus, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import { Bookmark, Plus, Zap, ChevronDown, ChevronUp, Crown } from "lucide-react";
 import { useState, useEffect } from "react";
-import { postsService, profileService, networkService } from "@/services/api";
+import { postsService, profileService, networkService, subscriptionService } from "@/services/api";
 
 export function LeftSidebar() {
   const { user, profile } = useAuth();
@@ -11,6 +11,8 @@ export function LeftSidebar() {
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [coverImage, setCoverImage] = useState(null);
   const [connectionsCount, setConnectionsCount] = useState(0);
+  const [profileViews, setProfileViews] = useState(0);
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -31,13 +33,38 @@ export function LeftSidebar() {
         networkService.getMyConnections()
             .then(data => setConnectionsCount(Array.isArray(data) ? data.length : 0))
             .catch(() => {});
+
+        // Fetch profile views count
+        profileService.getProfileViews(user.id)
+            .then(data => {
+                setProfileViews(data.viewCount || 0);
+            })
+            .catch(err => console.error("Failed to load profile views", err));
+
+        // Check subscription status
+        subscriptionService.getStatus(user.id)
+            .then(data => {
+                if (data && data.active) {
+                    setIsPremium(true);
+                }
+            })
+            .catch(() => {});
     }
   }, [user?.id]);
 
   return (
     <aside className="w-[240px] flex-shrink-0">
-      <div className="unir-card overflow-hidden unir-card-hover group">
-        <div className="h-16 bg-gradient-to-br from-blue-600 to-indigo-700 relative overflow-hidden">
+      <div className="unir-card relative unir-card-hover group">
+        {/* Premium Crown - Floating on Top Left Corner */}
+        {isPremium && (
+            <div className="absolute -top-4 -left-4 z-50 transform -rotate-[30deg] filter drop-shadow-md">
+                <div className="bg-gradient-to-br from-yellow-100 to-white p-2 rounded-full border-2 border-yellow-300 shadow-sm">
+                    <Crown className="w-8 h-8 text-yellow-600 fill-yellow-500" strokeWidth={2.5} />
+                </div>
+            </div>
+        )}
+
+        <div className="h-16 bg-gradient-to-br from-blue-600 to-indigo-700 relative overflow-hidden rounded-t-2xl">
             {coverImage && (
                 <img 
                     src={coverImage} 
@@ -48,7 +75,7 @@ export function LeftSidebar() {
             <div className="absolute inset-0 bg-black/10 backdrop-blur-[0px]" />
         </div>
         <div className="px-4 pb-4 -mt-10 relative z-10">
-          <Link to="/profile" className="block w-20 h-20 mx-auto transition-transform active:scale-95">
+          <Link to="/profile" className="block w-20 h-20 mx-auto transition-transform active:scale-95 relative">
             <img
               src={profile?.profilePictureUrl || user?.avatar || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"}
               alt="Profile"
@@ -69,9 +96,9 @@ export function LeftSidebar() {
             <span className="text-slate-500 font-medium">Connections</span>
             <span className="text-blue-600 font-bold group-hover/row:scale-110 transition-transform">{connectionsCount}</span>
           </Link>
-          <Link to="/profile" className="flex justify-between items-center px-4 py-2 text-[11px] hover:bg-slate-50 transition-colors group/row">
+          <Link to="/profile/views" className="flex justify-between items-center px-4 py-2 text-[11px] hover:bg-slate-50 transition-colors group/row">
             <span className="text-slate-500 font-medium">Profile Views</span>
-            <span className="text-blue-600 font-bold group-hover/row:scale-110 transition-transform">142</span>
+            <span className="text-blue-600 font-bold group-hover/row:scale-110 transition-transform">{profileViews}</span>
           </Link>
         </div>
         <div className="border-t border-slate-100 px-4 py-4 bg-slate-50/50">

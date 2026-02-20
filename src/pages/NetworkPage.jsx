@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/Navbar/Navbar";
-import { Users, UserPlus, Search, UserCheck, X, Check } from "lucide-react";
+import { Users, UserPlus, Search, UserCheck, X, Check, Crown } from "lucide-react";
 import { useState, useEffect } from "react";
-import { networkService, profileService } from "@/services/api";
+import { networkService, profileService, subscriptionService } from "@/services/api";
 import { Spinner } from "@/components/ui/Spinner";
 import { useNavigate } from "react-router-dom";
 
@@ -15,6 +15,16 @@ export default function NetworkPage() {
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
 
+  // Helper to fetch premium status
+  const fetchPremiumStatus = async (userId) => {
+      try {
+          const status = await subscriptionService.getStatus(userId);
+          return status && status.active;
+      } catch (e) {
+          return false;
+      }
+  };
+
   // Load invitations on mount so the count is always visible in the sidebar
   useEffect(() => {
     const loadInvitations = async () => {
@@ -24,13 +34,15 @@ export default function NetworkPage() {
           const enriched = await Promise.all(data.map(async (p) => {
             try {
               const profile = await profileService.getProfileById(p.userId);
+              const isPremium = await fetchPremiumStatus(p.userId);
               return {
                 ...p,
                 ...profile,
                 firstName: profile.firstName,
                 lastName: profile.lastName,
                 headline: profile.headline || "Member",
-                profilePictureUrl: profile.profilePictureUrl
+                profilePictureUrl: profile.profilePictureUrl,
+                isPremium
               };
             } catch (e) {
               console.error(`Failed to enrich request ${p.userId}`, e);
@@ -69,6 +81,7 @@ export default function NetworkPage() {
             const enriched = await Promise.all(data.map(async (p) => {
                 try {
                     const profile = await profileService.getProfileById(p.userId);
+                    const isPremium = await fetchPremiumStatus(p.userId);
                     return { 
                         ...p, 
                         ...profile, 
@@ -76,7 +89,8 @@ export default function NetworkPage() {
                         firstName: profile.firstName,
                         lastName: profile.lastName, 
                         headline: profile.headline || "Member",
-                        profilePictureUrl: profile.profilePictureUrl
+                        profilePictureUrl: profile.profilePictureUrl,
+                        isPremium
                     };
                 } catch (e) {
                     console.error(`Failed to enrich connection ${p.userId}`, e);
@@ -100,13 +114,15 @@ export default function NetworkPage() {
            const enriched = await Promise.all(data.map(async (p) => {
                 try {
                     const profile = await profileService.getProfileById(p.userId);
+                    const isPremium = await fetchPremiumStatus(p.userId);
                     return { 
                         ...p, 
                         ...profile,
                         firstName: profile.firstName,
                         lastName: profile.lastName,
                         headline: profile.headline || "Member",
-                        profilePictureUrl: profile.profilePictureUrl
+                        profilePictureUrl: profile.profilePictureUrl,
+                        isPremium
                     };
                 } catch (e) {
                     console.error(`Failed to enrich request ${p.userId}`, e);
@@ -143,7 +159,12 @@ export default function NetworkPage() {
     const timer = setTimeout(async () => {
       try {
         const results = await profileService.getProfilesByName(searchQuery);
-        setSearchResults(results || []);
+        // Enrich search results with premium status
+        const enriched = await Promise.all((results || []).map(async (p) => {
+            const isPremium = await fetchPremiumStatus(p.userId || p.id); // Handle potential ID field difference
+            return { ...p, isPremium };
+        }));
+        setSearchResults(enriched);
       } catch (err) {
         console.error("Search failed", err);
       } finally {
@@ -237,11 +258,18 @@ export default function NetworkPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {connections.map((person) => (
                                         <div key={person.userId} className="border border-gray-200 rounded-xl p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
-                                            <img 
-                                                src={person.profilePictureUrl || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"} 
-                                                className="w-16 h-16 rounded-full object-cover border border-gray-100"
-                                                alt={person.firstName}
-                                            />
+                                            <div className="relative">
+                                                <img 
+                                                    src={person.profilePictureUrl || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"} 
+                                                    className="w-16 h-16 rounded-full object-cover border border-gray-100"
+                                                    alt={person.firstName}
+                                                />
+                                                {person.isPremium && (
+                                                    <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 border border-yellow-100 shadow-sm z-10">
+                                                        <Crown className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                                    </div>
+                                                )}
+                                            </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="font-bold text-gray-900 truncate hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${person.userId}`)}>
                                                     {person.firstName} {person.lastName}
@@ -277,11 +305,18 @@ export default function NetworkPage() {
                                     {requests.map((req) => (
                                         <div key={req.userId} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50/50">
                                             <div className="flex items-center gap-4">
-                                                <img 
-                                                    src={req.profilePictureUrl || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"} 
-                                                    className="w-16 h-16 rounded-full object-cover"
-                                                    alt={req.firstName}
-                                                />
+                                                <div className="relative">
+                                                    <img 
+                                                        src={req.profilePictureUrl || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"} 
+                                                        className="w-16 h-16 rounded-full object-cover"
+                                                        alt={req.firstName}
+                                                    />
+                                                    {req.isPremium && (
+                                                        <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 border border-yellow-100 shadow-sm z-10">
+                                                            <Crown className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div>
                                                     <h3 className="font-bold text-gray-900 text-lg hover:underline cursor-pointer" onClick={() => navigate(`/profile/view/${req.userId}`)}>
                                                         {req.firstName} {req.lastName}
@@ -343,12 +378,17 @@ export default function NetworkPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                      {searchResults.map((person) => (
                                         <div key={person.userId} className="border border-gray-200 rounded-xl p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow relative group">
-                                            <div className="w-24 h-24 rounded-full overflow-hidden mb-3 border-4 border-gray-50">
+                                            <div className="w-24 h-24 rounded-full overflow-hidden mb-3 border-4 border-gray-50 relative">
                                                 <img 
                                                     src={person.profilePictureUrl || "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png"} 
                                                     className="w-full h-full object-cover" 
                                                     alt={person.firstName}
                                                 />
+                                                {person.isPremium && (
+                                                    <div className="absolute top-0 right-0 bg-white rounded-full p-1 border border-yellow-100 shadow-sm z-10">
+                                                        <Crown className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                                    </div>
+                                                )}
                                             </div>
                                             <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors cursor-pointer" onClick={() => navigate(`/profile/view/${person.userId}`)}>
                                                 {person.firstName} {person.lastName}

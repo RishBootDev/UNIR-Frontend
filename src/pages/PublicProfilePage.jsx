@@ -17,6 +17,7 @@ export default function PublicProfilePage() {
     if (userId) {
       loadProfile();
       checkConnectionStatus();
+      profileService.viewProfile(userId).catch(err => console.error("Failed to record view", err));
     }
   }, [userId]);
 

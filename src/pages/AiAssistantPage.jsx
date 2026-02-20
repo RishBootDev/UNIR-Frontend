@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import {
   analyzeFile, generateCaption, getTopNews, generateInterviewQuestions,
-  reviewAnswers, getProfileScore, connectAstraChat,
+  reviewAnswers, getProfileScore,
 } from "@/services/aiService";
 
 const GHOST_AVATAR = "https://static.licdn.com/aero-v1/networks/ghost-finder/ghost-person.612aaaff.png";
@@ -24,7 +24,7 @@ function PremiumGate() {
       </div>
       <h2 className="text-2xl font-bold text-slate-900 mb-3">Premium Feature</h2>
       <p className="text-slate-500 max-w-md mb-6 leading-relaxed">
-        Astra AI is exclusively available for Premium members. Upgrade now to unlock
+        Unir AI is exclusively available for Premium members. Upgrade now to unlock
         AI-powered profile analysis, interview prep, caption generation, and more.
       </p>
       <button
@@ -201,13 +201,124 @@ function ResultDisplay({ data, type }) {
   }
 
   if (type === "interview") {
+    let parsedData = null;
+    let rawContent = data?.content || data;
+
+    if (typeof rawContent === "string") {
+      try {
+        const cleanContent = rawContent.replace(/```json/i, "").replace(/```/i, "").trim();
+        parsedData = JSON.parse(cleanContent);
+      } catch (e) {
+        parsedData = rawContent;
+      }
+    } else {
+      parsedData = rawContent;
+    }
+
+    if (typeof parsedData === "object" && parsedData !== null) {
+      const resumeSummaryKey = Object.keys(parsedData).find(k => k.toLowerCase().includes("resume summary"));
+      const targetRolesKey = Object.keys(parsedData).find(k => k.toLowerCase().includes("target role"));
+      const questionsKey = Object.keys(parsedData).find(k => k.toLowerCase().includes("question"));
+
+      if (resumeSummaryKey || targetRolesKey || questionsKey) {
+        const summary = resumeSummaryKey ? parsedData[resumeSummaryKey] : null;
+        const targetRoles = targetRolesKey ? parsedData[targetRolesKey] : null;
+        const questions = questionsKey ? parsedData[questionsKey] : null;
+
+        return (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="font-bold text-slate-800 text-lg mb-5 flex items-center gap-2 border-b border-slate-100 pb-4">
+                <BrainCircuit className="w-5 h-5 text-violet-500" /> Interview Prep Results
+              </h4>
+              
+              {summary && (
+                <div className="mb-6">
+                  <h5 className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Resume Summary</h5>
+                  <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    {typeof summary === "string" ? summary : JSON.stringify(summary)}
+                  </p>
+                </div>
+              )}
+
+              {targetRoles && Array.isArray(targetRoles) && (
+                <div className="mb-8">
+                  <h5 className="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wider">Target Roles</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {targetRoles.map((role, idx) => (
+                      <span key={idx} className="px-3 py-1.5 bg-violet-50 text-violet-700 text-xs font-semibold rounded-lg border border-violet-100 shadow-sm">
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {questions && Array.isArray(questions) && (
+                <div>
+                  <h5 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wider">Top Interview Questions</h5>
+                  <div className="space-y-4">
+                    {questions.map((q, idx) => {
+                      const questionText = q.Question || q.question || q.Q || "Unknown Question";
+                      const focusArea = q["Focus Area"] || q.focus_area || q.focusArea;
+                      const difficulty = q.Difficulty || q.difficulty;
+                      
+                      const focusAreaArray = typeof focusArea === 'string' 
+                        ? focusArea.split(',').map(a => a.trim()).filter(Boolean)
+                        : (Array.isArray(focusArea) ? focusArea : [focusArea].filter(Boolean));
+                      
+                      return (
+                      <div key={idx} className="p-5 rounded-xl border border-slate-200 bg-white hover:border-violet-300 hover:shadow-md transition-all group">
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div className="flex gap-3">
+                            <span className="flex-shrink-0 w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-sm font-bold mt-0.5">
+                              {idx + 1}
+                            </span>
+                            <p className="font-semibold text-slate-800 leading-relaxed text-base pt-1">
+                              {questionText}
+                            </p>
+                          </div>
+                          {difficulty && (
+                            <span className={`flex-shrink-0 px-3 py-1 text-xs font-bold rounded-full border shadow-sm ${
+                              difficulty.toLowerCase() === 'easy' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              difficulty.toLowerCase() === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                              'bg-red-50 text-red-700 border-red-200'
+                            }`}>
+                              {difficulty}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {focusAreaArray.length > 0 && (
+                          <div className="ml-11 mt-3">
+                            <p className="text-xs text-slate-500 font-bold mb-2 uppercase tracking-wider">Focus Areas</p>
+                            <div className="flex flex-wrap gap-2">
+                              {focusAreaArray.map((area, i) => (
+                                <span key={i} className="px-2.5 py-1 bg-slate-100/80 text-slate-600 text-xs font-medium rounded-md border border-slate-200/60">
+                                  {area}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )})}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+    }
+
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-500">
         <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
           <BrainCircuit className="w-4 h-4 text-violet-500" /> Interview Questions
         </h4>
-        <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-          {typeof data === "string" ? data : JSON.stringify(data, null, 2)}
+        <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap overflow-auto">
+          {typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent, null, 2)}
         </div>
       </div>
     );
@@ -600,7 +711,7 @@ function ProfileScoreView({ onBack }) {
     setError(null);
     setResult(null);
     try {
-      const res = await getProfileScore(profile || {});
+      const res = await getProfileScore({});
       setResult(res?.data || res);
     } catch (err) {
       if (err.code === "PREMIUM_REQUIRED") setError("premium");
@@ -643,196 +754,7 @@ function ProfileScoreView({ onBack }) {
   );
 }
 
-/* ─────────── Astra Chat ─────────── */
-function AstraChatView({ onBack }) {
-  const { user, profile } = useAuth();
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const socketRef = useRef(null);
-  const messagesEndRef = useRef(null);
-  const chatIdRef = useRef(`chat-${Date.now()}`);
 
-  useEffect(() => {
-    try {
-      const socket = connectAstraChat();
-      socketRef.current = socket;
-
-      socket.on("connect", () => {
-        console.log("[Astra] Connected to AI chat");
-        setConnected(true);
-        setError(null);
-      });
-
-      socket.on("disconnect", () => {
-        console.log("[Astra] Disconnected from AI chat");
-        setConnected(false);
-      });
-
-      socket.on("connect_error", (err) => {
-        console.error("[Astra] Connection error:", err.message);
-        setError("Failed to connect to Astra AI. Please ensure AI service is running.");
-        setConnected(false);
-      });
-
-      socket.on("ai-message-response", ({ response, chatId }) => {
-        setMessages(prev => [...prev, { role: "ai", content: response, time: new Date() }]);
-        setLoading(false);
-      });
-
-      socket.on("ai-message-error", ({ error: errMsg }) => {
-        setMessages(prev => [...prev, { role: "error", content: errMsg, time: new Date() }]);
-        setLoading(false);
-      });
-
-      return () => {
-        socket.disconnect();
-      };
-    } catch (err) {
-      setError("Failed to initialize Astra AI chat.");
-    }
-  }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleSend = () => {
-    if (!input.trim() || !connected || loading) return;
-    const msg = input.trim();
-    setMessages(prev => [...prev, { role: "user", content: msg, time: new Date() }]);
-    setInput("");
-    setLoading(true);
-
-    socketRef.current?.emit("ai-message", {
-      chatId: chatIdRef.current,
-      message: msg,
-    });
-  };
-
-  return (
-    <FeatureViewLayout
-      onBack={onBack}
-      title="Astra AI Chat"
-      subtitle="Your intelligent AI assistant with memory"
-      icon={Bot}
-      gradient="from-cyan-500 to-blue-600"
-      noPadding
-    >
-      <div className="flex flex-col h-[calc(100vh-280px)] min-h-[400px]">
-        {/* Connection status */}
-        <div className={`px-4 py-2 text-xs font-medium flex items-center gap-2 border-b ${
-          connected ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-600 border-red-200"
-        }`}>
-          <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
-          {connected ? "Connected to Astra AI" : error || "Connecting..."}
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center py-10">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-cyan-200/50">
-                <Bot className="w-10 h-10 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Hi, I'm Astra AI!</h3>
-              <p className="text-sm text-slate-500 max-w-sm leading-relaxed">
-                I'm your intelligent assistant created by Ritul Jain. Ask me anything about technology,
-                career advice, problem-solving, or just have a conversation!
-              </p>
-              <div className="flex flex-wrap justify-center gap-2 mt-5">
-                {["Tell me about yourself", "Help with my career", "Latest tech trends"].map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => { setInput(suggestion); }}
-                    className="px-4 py-2 text-xs font-medium bg-slate-100 text-slate-600 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                msg.role === "user"
-                  ? "bg-blue-100"
-                  : msg.role === "error"
-                  ? "bg-red-100"
-                  : "bg-gradient-to-br from-cyan-400 to-blue-600"
-              }`}>
-                {msg.role === "user" ? (
-                  <img
-                    src={profile?.profilePictureUrl || GHOST_AVATAR}
-                    alt=""
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : msg.role === "error" ? (
-                  <AlertTriangle className="w-4 h-4 text-red-500" />
-                ) : (
-                  <Bot className="w-4 h-4 text-white" />
-                )}
-              </div>
-              <div
-                className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-blue-600 text-white rounded-tr-md"
-                    : msg.role === "error"
-                    ? "bg-red-50 text-red-700 border border-red-200 rounded-tl-md"
-                    : "bg-slate-100 text-slate-800 rounded-tl-md"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-              </div>
-            </div>
-          ))}
-
-          {loading && (
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center flex-shrink-0">
-                <Bot className="w-4 h-4 text-white" />
-              </div>
-              <div className="bg-slate-100 px-4 py-3 rounded-2xl rounded-tl-md">
-                <div className="flex gap-1.5">
-                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <div className="p-4 border-t border-slate-200 bg-white/80 backdrop-blur">
-          <div className="flex items-center gap-2">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-              placeholder={connected ? "Type a message..." : "Connecting to Astra AI..."}
-              disabled={!connected}
-              className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-white border border-transparent focus:border-blue-300 transition-all disabled:opacity-50"
-            />
-            <button
-              onClick={handleSend}
-              disabled={!connected || !input.trim() || loading}
-              className="p-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </FeatureViewLayout>
-  );
-}
 
 /* ─────────── Feature View Layout ─────────── */
 function FeatureViewLayout({ onBack, title, subtitle, icon: Icon, gradient, children, noPadding }) {
@@ -877,13 +799,6 @@ export default function AiAssistantPage() {
 
   const features = [
     {
-      id: "chat",
-      icon: Bot,
-      title: "Astra AI Chat",
-      description: "Chat with your intelligent AI assistant powered by memory and tools",
-      gradient: "from-cyan-500 to-blue-600",
-    },
-    {
       id: "profile-analyzer",
       icon: UserCheck,
       title: "Profile Analyzer",
@@ -924,7 +839,6 @@ export default function AiAssistantPage() {
   const renderActiveView = () => {
     const goBack = () => setActiveFeature(null);
     switch (activeFeature) {
-      case "chat": return <AstraChatView onBack={goBack} />;
       case "profile-analyzer": return <ProfileAnalyzerView onBack={goBack} />;
       case "caption": return <CaptionGeneratorView onBack={goBack} />;
 
@@ -950,10 +864,10 @@ export default function AiAssistantPage() {
               <div className="text-center mb-10 animate-in fade-in duration-500">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200/60 text-cyan-700 text-sm font-semibold mb-4">
                   <Sparkles className="w-4 h-4" />
-                  Powered by Gemini & Groq AI
+                  Powered by RishBootDev and RitulWorks
                 </div>
                 <h1 className="text-4xl font-extrabold text-slate-900 mb-3">
-                  Astra AI <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">Assistant</span>
+                  Unir AI <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">Assistant</span>
                 </h1>
                 <p className="text-lg text-slate-500 max-w-lg mx-auto leading-relaxed">
                   Your AI-powered toolkit for career growth, profile optimization, and professional development.

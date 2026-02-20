@@ -100,7 +100,7 @@ export function Navbar() {
       { to: "/jobs", icon: Briefcase, label: "Jobs" },
       { to: "/messaging", icon: MessageSquare, label: "Messaging" },
       { to: "/notifications", icon: Bell, label: "Notifications" },
-      { to: "/ai-assistant", icon: Sparkles, label: "Astra AI" },
+      { to: "/ai-assistant", icon: Sparkles, label: "Unir AI" },
     ],
     []
   );

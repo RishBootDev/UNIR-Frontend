@@ -21,6 +21,7 @@ const CompanyPage = lazy(() => import("@/pages/CompanyPage"));
 const InstitutionPage = lazy(() => import("@/pages/InstitutionPage"));
 const SubscriptionPage = lazy(() => import("@/pages/SubscriptionPage"));
 const SubscriptionSuccessPage = lazy(() => import("@/pages/SubscriptionSuccessPage"));
+const ProfileViewsPage = lazy(() => import("@/pages/ProfileViewsPage"));
 const AiAssistantPage = lazy(() => import("@/pages/AiAssistantPage"));
 const JobsPage = lazy(() => import("@/pages/JobsPage"));
 
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/messaging" element={<MessagingPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/views" element={<ProfileViewsPage />} />
             <Route path="/profile/view/:userId" element={<PublicProfilePage />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/company/:name" element={<CompanyPage />} />

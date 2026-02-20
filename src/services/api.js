@@ -154,6 +154,10 @@ export const profileService = {
   setSkillsAndLanguages: (skills, languages) => apiFetch("/profile/skills-languages", { method: "PUT", body: { skills, languages } }),
   setProjectsAndCerts: (projects, certifications) => apiFetch("/profile/projects-certs", { method: "PUT", body: { projects, certifications } }),
   getSkills: (userId) => apiFetch(`/profile/getSkills?userId=${userId}`, { method: "GET" }),
+  
+  // Profile View Service
+  viewProfile: (id) => apiFetch('/view/' + id, { method: 'POST' }),
+  getProfileViews: (userId) => apiFetch('/view/' + userId, { method: 'GET' }),
 };
 
 export const companyService = {
@@ -212,13 +216,28 @@ export const experienceService = {
 };
 
 export const paymentService = {
-  createOrder: (amount, currency = "INR") => apiFetch("/payments/create-order", { method: "POST", body: { amount, currency } }),
+  createOrder: (amount, currency = "INR") => {
+      const userId = getUserId();
+      return apiFetch("/payments/create-order", { method: "POST", body: { amount, currency, userId } });
+  },
   verifyPayment: (data) => apiFetch("/payments/verify", { method: "POST", body: data }),
 };
 
 export const subscriptionService = {
-  getStatus: (userId) => apiFetch(`/subscriptions/status/${userId}`),
-  cancelSubscription: (userId) => apiFetch(`/subscriptions/cancel/${userId}`, { method: "POST" }),
+  getStatus: (userId) => {
+      // If a specific userId is provided (and it's not the logged-in user, though checking that here is hard without context, 
+      // but usually the caller knows), use the specific endpoint.
+      // However, the api.js previous flow was fetching 'my' status.
+      // Let's support both. If userId is passed, append it. 
+      // Note: SubscriptionPage calls getStatus(user.id). 
+      // If we change this to use /status/{id}, it works for both if the backend endpoint is open.
+      
+      // Better logic: if userId is provided, use the param endpoint.
+      // If the caller wants "my" status and passes ID, it still works.
+     if (userId) return apiFetch(`/subscriptions/status/${userId}`);
+     return apiFetch(`/subscriptions/status`);
+  },
+  cancelSubscription: () => apiFetch(`/subscriptions/cancel`, { method: "POST" }),
 };
 
 export const aiService = {
