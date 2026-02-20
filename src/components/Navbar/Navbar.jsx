@@ -10,9 +10,10 @@ import {
   Grid3X3,
   ChevronDown,
   Sparkles,
+  Link2,
 } from "lucide-react";
 import { useAuth } from "@/context/useAuth";
-import { companyService, institutionService, networkService } from "@/services/api";
+import { companyService, institutionService, networkService, searchLinkService } from "@/services/api";
 import UNIR_LOGO from "@/assets/UNIR_logo.jpeg";
 
 export function Navbar() {
@@ -23,7 +24,7 @@ export function Navbar() {
   
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState({ companies: [], institutions: [] });
+  const [searchResults, setSearchResults] = useState({ companies: [], institutions: [], linkResults: null });
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [invitationCount, setInvitationCount] = useState(0);
@@ -49,26 +50,32 @@ export function Navbar() {
   useEffect(() => {
     const timer = setTimeout(async () => {
         if (searchQuery.length < 2) {
-            setSearchResults({ companies: [], institutions: [] });
+            setSearchResults({ companies: [], institutions: [], linkResults: null });
             return;
         }
 
         setIsSearching(true);
         try {
-            const [companies, institutions] = await Promise.all([
+            const [companies, institutions, linkData] = await Promise.all([
                 companyService.search(searchQuery).catch(() => []), 
-                institutionService.search(searchQuery).catch(() => [])
+                institutionService.search(searchQuery).catch(() => []),
+                searchLinkService.searchByName(searchQuery).catch(() => ({ results: [] }))
             ]);
-            setSearchResults({ companies: companies || [], institutions: institutions || [] });
+            setSearchResults({ 
+                companies: companies || [], 
+                institutions: institutions || [],
+                linkResults: linkData?.results || null 
+            });
         } catch (error) {
             console.error("Search failed", error);
         } finally {
             setIsSearching(false);
         }
-    }, 400);
+    }, 500); // Slightly longer debounce for the combined AI search
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
 
   const handleResultClick = (type, name) => {
       setShowResults(false);
@@ -178,7 +185,50 @@ export function Navbar() {
                                 </div>
                             )}
 
-                            {searchResults.companies.length === 0 && searchResults.institutions.length === 0 && (
+                            {/* Added Combined Search-Link Results */}
+                            {searchResults.linkResults && (
+                                <div className="border-t border-slate-100">
+                                    {searchResults.linkResults.profile && (
+                                        <div className="px-4 py-3 bg-blue-50/50 border-b border-blue-100">
+                                            <h4 className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-2">LinkedIn Profile Found</h4>
+                                            <a 
+                                                href={searchResults.linkResults.profile} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="text-sm font-bold text-blue-700 hover:underline flex items-center gap-2"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+                                                    <Link2 size={16} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="truncate">View LinkedIn Profile</div>
+                                                    <div className="text-[10px] text-blue-500 font-medium truncate">{searchResults.linkResults.profile}</div>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    )}
+
+                                    {searchResults.linkResults.results && searchResults.linkResults.results.length > 0 && (
+                                        <div className="py-2">
+                                            <h4 className="px-4 pb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Web Search Results</h4>
+                                            {searchResults.linkResults.results.map((res, i) => (
+                                                <a 
+                                                    key={`link-${i}`} 
+                                                    href={res.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="px-4 py-2 hover:bg-slate-50 cursor-pointer flex flex-col gap-1 transition-colors border-b border-slate-50 last:border-0"
+                                                >
+                                                    <div className="text-sm font-semibold text-blue-600 truncate hover:underline">{res.title}</div>
+                                                    <div className="text-[11px] text-slate-400 truncate">{res.link}</div>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {searchResults.companies.length === 0 && searchResults.institutions.length === 0 && !searchResults.linkResults && (
                                 <div className="p-8 text-center">
                                     <div className="mx-auto w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-2">
                                         <Search className="w-6 h-6 text-slate-300" />

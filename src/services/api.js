@@ -248,3 +248,7 @@ export const aiService = {
     }),
 };
 
+export const searchLinkService = {
+  searchByName: (name) => apiFetch(`/search/${encodeURIComponent(name)}`),
+};
+

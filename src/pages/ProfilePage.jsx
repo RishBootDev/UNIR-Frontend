@@ -549,7 +549,7 @@ export default function ProfilePage() {
                 </div>
               ), <Award className="w-6 h-6" />, 'certification')}
 
-              <SubscriptionCard />
+              <div className="mb-8" />
             </div>
 
             {/* Right Sidebar - Dynamic placeholder */}
