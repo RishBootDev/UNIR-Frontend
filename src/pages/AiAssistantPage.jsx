@@ -5,10 +5,10 @@ import { useAuth } from "@/context/useAuth";
 import {
   Sparkles, Upload, FileText, Newspaper, BrainCircuit, ClipboardCheck,
   UserCheck, Send, X, ChevronRight, Bot, User, Loader2, AlertTriangle,
-  Crown, MessageCircle, Star, ArrowLeft, Paperclip, Trash2, Zap, Info
+  Crown, Star, ArrowLeft, Paperclip, Trash2, Zap, Info
 } from "lucide-react";
 import {
-  analyzeFile, generateCaption, getTopNews, generateInterviewQuestions,
+  analyzeFile, getTopNews, generateInterviewQuestions,
   reviewAnswers, getProfileScore,
 } from "@/services/aiService";
 
@@ -159,33 +159,6 @@ function ResultDisplay({ data, type }) {
     );
   }
 
-  if (type === "caption" && data?.content) {
-    return (
-      <div className="space-y-4 animate-in fade-in duration-500">
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-          <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
-            <MessageCircle className="w-4 h-4 text-blue-500" /> Generated Caption
-          </h4>
-          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{data.content.caption}</p>
-          {data.content.hashtags?.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {data.content.hashtags.map((tag, i) => (
-                <span key={i} className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full">
-                  {tag.startsWith("#") ? tag : `#${tag}`}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <button
-          onClick={() => { navigator.clipboard.writeText(data.content.caption + "\n\n" + (data.content.hashtags || []).map(t => t.startsWith("#") ? t : `#${t}`).join(" ")); }}
-          className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-        >
-          📋 Copy to clipboard
-        </button>
-      </div>
-    );
-  }
 
   if (type === "news") {
     return (
@@ -476,61 +449,6 @@ function ProfileAnalyzerView({ onBack }) {
   );
 }
 
-/* ─────────── Caption Generator ─────────── */
-function CaptionGeneratorView({ onBack }) {
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-
-  const handleGenerate = async () => {
-    if (!file) return;
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const res = await generateCaption(file);
-      setResult(res?.data || res);
-    } catch (err) {
-      if (err.code === "PREMIUM_REQUIRED") setError("premium");
-      else setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <FeatureViewLayout
-      onBack={onBack}
-      title="Caption Generator"
-      subtitle="Upload an image or document to generate a professional LinkedIn caption"
-      icon={MessageCircle}
-      gradient="from-pink-500 to-rose-600"
-    >
-      {error === "premium" ? (
-        <PremiumGate />
-      ) : (
-        <div className="space-y-5">
-          <FileDropZone
-            file={file}
-            onFileSelect={setFile}
-            onRemove={() => setFile(null)}
-            acceptedTypes=".png,.jpg,.jpeg,.webp,.pdf,.doc,.docx"
-          />
-          {error && error !== "premium" && <ErrorBar message={error} />}
-          <button
-            onClick={handleGenerate}
-            disabled={!file || loading}
-            className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-pink-200/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-          >
-            {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</> : <><Sparkles className="w-5 h-5" /> Generate Caption</>}
-          </button>
-          {result && <ResultDisplay data={result} type="caption" />}
-        </div>
-      )}
-    </FeatureViewLayout>
-  );
-}
 
 /* ─────────── Top News ─────────── */
 function TopNewsView({ onBack }) {
@@ -805,13 +723,6 @@ export default function AiAssistantPage() {
       description: "Upload your resume for comprehensive LinkedIn optimization insights",
       gradient: "from-blue-500 to-indigo-600",
     },
-    {
-      id: "caption",
-      icon: MessageCircle,
-      title: "Caption Generator",
-      description: "Generate professional LinkedIn captions from your images and documents",
-      gradient: "from-pink-500 to-rose-600",
-    },
 
     {
       id: "interview",
@@ -840,7 +751,6 @@ export default function AiAssistantPage() {
     const goBack = () => setActiveFeature(null);
     switch (activeFeature) {
       case "profile-analyzer": return <ProfileAnalyzerView onBack={goBack} />;
-      case "caption": return <CaptionGeneratorView onBack={goBack} />;
 
       case "interview": return <InterviewPrepView onBack={goBack} />;
       case "review": return <AnswerReviewView onBack={goBack} />;
